@@ -2,6 +2,7 @@ package com.example.attendanceproject;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -19,21 +20,29 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class FirebaseUIActivity extends AppCompatActivity {
 
     // [START auth_fui_create_launcher]
     // See: https://developer.android.com/training/basics/intents/result
+
+    FirebaseFirestore fStore = FirebaseFirestore.getInstance();
+
     private final ActivityResultLauncher<Intent> signInLauncher = registerForActivityResult(
             new FirebaseAuthUIActivityResultContract(),
             new ActivityResultCallback<FirebaseAuthUIAuthenticationResult>() {
                 @Override
                 public void onActivityResult(FirebaseAuthUIAuthenticationResult result) {
                     onSignInResult(result);
+//                    Intent intent = new Intent()
                 }
             }
     );
@@ -59,6 +68,11 @@ public class FirebaseUIActivity extends AppCompatActivity {
         Intent signInIntent = AuthUI.getInstance()
                 .createSignInIntentBuilder()
                 .setAvailableProviders(providers)
+                .setLogo(R.drawable.my_great_logo)      // Set logo drawable
+                .setTheme(R.style.Theme_AttendanceProject)      // Set theme
+                .setTosAndPrivacyPolicyUrls(
+                        "https://example.com/terms.html",
+                        "https://example.com/privacy.html")
                 .build();
         signInLauncher.launch(signInIntent);
         // [END auth_fui_create_intent]
@@ -70,14 +84,37 @@ public class FirebaseUIActivity extends AppCompatActivity {
         if (result.getResultCode() == RESULT_OK) {
             // Successfully signed in
             FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-            // ...
+            if (user != null) {
+                // Check if the user is new or existing
+                if (user.getMetadata() != null && user.getMetadata().getCreationTimestamp() == user.getMetadata().getLastSignInTimestamp()) {
+                    // The user is new, save their information to Firestore
+                    DocumentReference documentReference = fStore.collection("users").document(user.getUid());
+                    Map<String, Object> userFs = new HashMap<>();
+                    userFs.put("fullName", user.getDisplayName()); // This could be null for some providers
+                    userFs.put("email", user.getEmail());
+                    userFs.put("phone", user.getPhoneNumber()); // This could be null if not provided
+                    // Add other user information necessary for your app here
+
+                    documentReference.set(userFs)
+                            .addOnSuccessListener(aVoid -> Log.d("Firestore", "New user profile created."))
+                            .addOnFailureListener(e -> Log.w("Firestore", "Failed to create new user profile.", e));
+                } else {
+                    // The user is existing
+                    Log.d("Firestore", "Existing user signed in.");
+                }
+            }
         } else {
-            // Sign in failed. If response is null the user canceled the
-            // sign-in flow using the back button. Otherwise check
-            // response.getError().getErrorCode() and handle the error.
-            // ...
+            // Sign in failed
+            if (response == null) {
+                // User pressed back button
+                Log.d("AuthUI", "Sign in cancelled by user.");
+            } else {
+                // Handle other errors
+                Log.w("AuthUI", "Sign in failed", response.getError());
+            }
         }
     }
+
     // [END auth_fui_result]
 
     public void signOut() {
