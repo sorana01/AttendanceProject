@@ -42,7 +42,6 @@ public class FirebaseUIActivity extends AppCompatActivity {
                 @Override
                 public void onActivityResult(FirebaseAuthUIAuthenticationResult result) {
                     onSignInResult(result);
-//                    Intent intent = new Intent()
                 }
             }
     );
@@ -98,10 +97,15 @@ public class FirebaseUIActivity extends AppCompatActivity {
                     documentReference.set(userFs)
                             .addOnSuccessListener(aVoid -> Log.d("Firestore", "New user profile created."))
                             .addOnFailureListener(e -> Log.w("Firestore", "Failed to create new user profile.", e));
+
                 } else {
                     // The user is existing
                     Log.d("Firestore", "Existing user signed in.");
                 }
+
+                Intent intent = new Intent(this, UserAccountActivity.class);
+                startActivity(intent);
+                finish();
             }
         } else {
             // Sign in failed
