@@ -51,4 +51,13 @@ dependencies {
     implementation 'com.firebaseui:firebase-ui-auth:7.2.0'
     implementation 'com.facebook.android:facebook-android-sdk:16.0.0'
 
+    // Firebase ML Kit library for face detection
+    implementation 'com.google.mlkit:face-detection:16.1.6'
+
+    // CameraX libraries for camera support
+    def camerax_version = "1.4.0-alpha04"
+    implementation "androidx.camera:camera-camera2:${camerax_version}"
+    implementation "androidx.camera:camera-lifecycle:${camerax_version}"
+    implementation "androidx.camera:camera-view:${camerax_version}"
+
 }
