@@ -10,31 +10,31 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         tools:src="@tools:sample/backgrounds/scenic"
-        app:layout_constraintBottom_toTopOf="@+id/btnRecognize"
+        app:layout_constraintBottom_toTopOf="@+id/btnCamera"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnRegister"
+        android:id="@+id/btnGallery"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="60dp"
-        android:text="Register"
+        android:text="Gallery"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnRecognize"
+        app:layout_constraintEnd_toStartOf="@+id/btnCamera"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:id="@+id/btnRecognize"
+        android:id="@+id/btnCamera"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="60dp"
-        android:text="Recognize"
+        android:text="Camera"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/btnRegister" />
+        app:layout_constraintStart_toEndOf="@+id/btnGallery" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

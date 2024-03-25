@@ -50,6 +50,13 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".imagepicker.RecognitionActivity"
+            android:exported="false" />
+
+        <activity android:name=".imagepicker.RegisterActivity"
+            android:exported="false" />
+
+
     </application>
 
     <uses-permission android:name="android.permission.INTERNET"/>
