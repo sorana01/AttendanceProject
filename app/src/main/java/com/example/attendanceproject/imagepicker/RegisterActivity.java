@@ -9,7 +9,10 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
@@ -184,6 +187,8 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     public void performFaceDetection(Bitmap input) {
+        Bitmap mutableBmp = input.copy(Bitmap.Config.ARGB_8888, true);
+        Canvas canvas = new Canvas(mutableBmp);
         InputImage image = InputImage.fromBitmap(input, 0);
         Task<List<Face>> result =
                 detector.process(image)
@@ -195,8 +200,14 @@ public class RegisterActivity extends AppCompatActivity {
                                         Log.d("tryFace","Len= " + faces.size());
                                         for (Face face : faces) {
                                             Rect bounds = face.getBoundingBox();
+                                            Paint p1 = new Paint();
+                                            p1.setColor(Color.RED);
+                                            p1.setStyle(Paint.Style.STROKE);
+                                            p1.setStrokeWidth(5);
 
+                                            canvas.drawRect(bounds, p1);
                                         }
+                                        imageView.setImageBitmap(mutableBmp);
                                     }
                                 })
                         .addOnFailureListener(
