@@ -1,5 +1,6 @@
 package com.example.attendanceproject.imagepicker;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
@@ -9,6 +10,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,9 +30,18 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
 import com.example.attendanceproject.R;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.face.Face;
+import com.google.mlkit.vision.face.FaceDetection;
+import com.google.mlkit.vision.face.FaceDetector;
+import com.google.mlkit.vision.face.FaceDetectorOptions;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.util.List;
 
 
 public class RegisterActivity extends AppCompatActivity {
@@ -38,6 +49,18 @@ public class RegisterActivity extends AppCompatActivity {
     private Button galleryBtn;
     private Button cameraBtn;
     private Uri image_uri;
+    public static final int PERMISSION_CODE = 100;
+
+    // High-accuracy landmark detection and face classification
+    FaceDetectorOptions highAccuracyOpts =
+            new FaceDetectorOptions.Builder()
+                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                    .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+                    .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+                    .build();
+    FaceDetector detector;
+
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +105,8 @@ public class RegisterActivity extends AppCompatActivity {
                 }
             }
         });
+
+        detector = FaceDetection.getClient(highAccuracyOpts);
     }
 
     //TODO get the image from gallery and display it
@@ -95,6 +120,7 @@ public class RegisterActivity extends AppCompatActivity {
                         Bitmap input = uriToBitmap(image_uri);
                         input = rotateBitmap(input);
                         imageView.setImageBitmap(input);
+                        performFaceDetection(input);
                     }
                 }
             });
@@ -120,6 +146,7 @@ public class RegisterActivity extends AppCompatActivity {
                         Bitmap input = uriToBitmap(image_uri);
                         input = rotateBitmap(input);
                         imageView.setImageBitmap(input);
+                        performFaceDetection(input);
                     }
                 }
             });
@@ -154,5 +181,31 @@ public class RegisterActivity extends AppCompatActivity {
         rotationMatrix.setRotate(orientation);
         Bitmap cropped = Bitmap.createBitmap(input,0,0, input.getWidth(), input.getHeight(), rotationMatrix, true);
         return cropped;
+    }
+
+    public void performFaceDetection(Bitmap input) {
+        InputImage image = InputImage.fromBitmap(input, 0);
+        Task<List<Face>> result =
+                detector.process(image)
+                        .addOnSuccessListener(
+                                new OnSuccessListener<List<Face>>() {
+                                    @Override
+                                    public void onSuccess(List<Face> faces) {
+                                        // Task completed successfully
+                                        Log.d("tryFace","Len= " + faces.size());
+                                        for (Face face : faces) {
+                                            Rect bounds = face.getBoundingBox();
+
+                                        }
+                                    }
+                                })
+                        .addOnFailureListener(
+                                new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        // Task failed with an exception
+                                        // ...
+                                    }
+                                });
     }
 }
