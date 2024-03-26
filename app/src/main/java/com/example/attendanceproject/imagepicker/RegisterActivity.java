@@ -3,6 +3,7 @@ package com.example.attendanceproject.imagepicker;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -22,6 +23,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import androidx.activity.result.ActivityResult;
@@ -32,6 +34,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
+import android.widget.Toast;
+
 import com.example.attendanceproject.R;
 import com.example.attendanceproject.face_rec.FaceClassifier;
 import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
@@ -244,5 +248,38 @@ public class RegisterActivity extends AppCompatActivity {
 
         Bitmap croppedFace = Bitmap.createBitmap(input, bound.left, bound.top, bound.width(), bound.height());
         imageView.setImageBitmap(croppedFace);
+        croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
+        FaceClassifier.Recognition recognition = faceClassifier.recognizeImage(croppedFace, true);
+        Log.d("RegisterActivity", recognition.toString());
+        showRegisterDialogue(croppedFace, recognition);
+    }
+
+    public void showRegisterDialogue(Bitmap face, FaceClassifier.Recognition recognition) {
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.register_face_dialogue);
+        ImageView regImageView = dialog.findViewById(R.id.regImageView);
+        EditText nameEditText = dialog.findViewById(R.id.nameEditText);
+        Button regBtn = dialog.findViewById(R.id.regBtn);
+        regImageView.setImageBitmap(face);
+
+        regBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (nameEditText.getText().toString().equals("")) {
+                    nameEditText.setError("Enter Name");
+                } else {
+                    faceClassifier.register(nameEditText.getText().toString(), recognition);
+                    Toast.makeText(RegisterActivity.this, "Face is registered", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        dialog.show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 }

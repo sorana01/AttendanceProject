@@ -3,8 +3,6 @@ package com.example.attendanceproject.face_rec;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 
-import java.util.List;
-
 /** Generic interface for interacting with different recognition engines. */
 public interface FaceClassifier {
 
@@ -19,7 +17,7 @@ public interface FaceClassifier {
         private final String title;
         // A sortable score for how good the recognition is relative to others. Lower should be better.
         private final Float distance;
-        private Object embeeding;
+        private Object embedding;
         /** Optional location within the source image for the location of the recognized face. */
         private RectF location;
         private Bitmap crop;
@@ -30,15 +28,15 @@ public interface FaceClassifier {
             this.title = title;
             this.distance = distance;
             this.location = location;
-            this.embeeding = null;
+            this.embedding = null;
             this.crop = null;
         }
 
-        public void setEmbeeding(Object extra) {
-            this.embeeding = extra;
+        public void setEmbedding(Object extra) {
+            this.embedding = extra;
         }
-        public Object getEmbeeding() {
-            return this.embeeding;
+        public Object getEmbedding() {
+            return this.embedding;
         }
 
         public String getId() {
