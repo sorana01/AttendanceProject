@@ -33,6 +33,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
 import com.example.attendanceproject.R;
+import com.example.attendanceproject.face_rec.FaceClassifier;
+import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -62,6 +64,7 @@ public class RegisterActivity extends AppCompatActivity {
                     .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
                     .build();
     FaceDetector detector;
+    FaceClassifier faceClassifier;
 
 
     @Override
@@ -110,6 +113,11 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
         detector = FaceDetection.getClient(highAccuracyOpts);
+        try {
+            faceClassifier = TFLiteFaceRecognition.create(getAssets(), "facenet.tflite", 160, false);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     //TODO get the image from gallery and display it
