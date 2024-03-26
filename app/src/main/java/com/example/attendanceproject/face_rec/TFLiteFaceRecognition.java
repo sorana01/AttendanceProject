@@ -8,6 +8,8 @@ import android.util.Log;
 import android.util.Pair;
 
 
+import com.example.attendanceproject.imagepicker.MainActivity2;
+
 import org.tensorflow.lite.Interpreter;
 
 import java.io.FileInputStream;
@@ -44,10 +46,9 @@ public class TFLiteFaceRecognition
 
     private Interpreter tfLite;
 
-    public HashMap<String, Recognition> registered = new HashMap<>();
 
     public void register(String name, Recognition rec) {
-        registered.put(name, rec);
+        MainActivity2.registered.put(name, rec);
     }
 
     private TFLiteFaceRecognition() {}
@@ -99,7 +100,7 @@ public class TFLiteFaceRecognition
     // and returns the pair <id, distance>
     private Pair<String, Float> findNearest(float[] emb) {
         Pair<String, Float> ret = null;
-        for (Map.Entry<String, Recognition> entry : registered.entrySet()) {
+        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
             final String name = entry.getKey();
             final float[] knownEmb = ((float[][]) entry.getValue().getEmbedding())[0];
 
@@ -155,7 +156,7 @@ public class TFLiteFaceRecognition
         String id = "0";
         String label = "?";
 
-        if (registered.size() > 0) {
+        if (MainActivity2.registered.size() > 0) {
             final Pair<String, Float> nearest = findNearest(embeddings[0]);
             if (nearest != null) {
                 final String name = nearest.first;
