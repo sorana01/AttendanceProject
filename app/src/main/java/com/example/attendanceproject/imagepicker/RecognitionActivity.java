@@ -1,14 +1,20 @@
 package com.example.attendanceproject.imagepicker;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,6 +23,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import androidx.activity.result.ActivityResult;
@@ -27,10 +34,23 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
+import android.widget.Toast;
+
 import com.example.attendanceproject.R;
+import com.example.attendanceproject.face_rec.FaceClassifier;
+import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.face.Face;
+import com.google.mlkit.vision.face.FaceDetection;
+import com.google.mlkit.vision.face.FaceDetector;
+import com.google.mlkit.vision.face.FaceDetectorOptions;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.util.List;
 
 
 public class RecognitionActivity extends AppCompatActivity {
@@ -38,6 +58,20 @@ public class RecognitionActivity extends AppCompatActivity {
     private Button galleryBtn;
     private Button cameraBtn;
     private Uri image_uri;
+    private Canvas canvas;
+    public static final int PERMISSION_CODE = 100;
+
+    // High-accuracy landmark detection and face classification
+    FaceDetectorOptions highAccuracyOpts =
+            new FaceDetectorOptions.Builder()
+                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                    .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+                    .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+                    .build();
+    FaceDetector detector;
+    FaceClassifier faceClassifier;
+
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +116,13 @@ public class RecognitionActivity extends AppCompatActivity {
                 }
             }
         });
+
+        detector = FaceDetection.getClient(highAccuracyOpts);
+        try {
+            faceClassifier = TFLiteFaceRecognition.create(getAssets(), "facenet.tflite", 160, false);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     //TODO get the image from gallery and display it
@@ -95,6 +136,7 @@ public class RecognitionActivity extends AppCompatActivity {
                         Bitmap input = uriToBitmap(image_uri);
                         input = rotateBitmap(input);
                         imageView.setImageBitmap(input);
+                        performFaceDetection(input);
                     }
                 }
             });
@@ -120,6 +162,7 @@ public class RecognitionActivity extends AppCompatActivity {
                         Bitmap input = uriToBitmap(image_uri);
                         input = rotateBitmap(input);
                         imageView.setImageBitmap(input);
+                        performFaceDetection(input);
                     }
                 }
             });
@@ -154,5 +197,79 @@ public class RecognitionActivity extends AppCompatActivity {
         rotationMatrix.setRotate(orientation);
         Bitmap cropped = Bitmap.createBitmap(input,0,0, input.getWidth(), input.getHeight(), rotationMatrix, true);
         return cropped;
+    }
+
+    public void performFaceDetection(Bitmap input) {
+        Bitmap mutableBmp = input.copy(Bitmap.Config.ARGB_8888, true);
+        canvas = new Canvas(mutableBmp);
+        InputImage image = InputImage.fromBitmap(input, 0);
+        Task<List<Face>> result =
+                detector.process(image)
+                        .addOnSuccessListener(
+                                new OnSuccessListener<List<Face>>() {
+                                    @Override
+                                    public void onSuccess(List<Face> faces) {
+                                        // Task completed successfully
+                                        Log.d("tryFace","Len= " + faces.size());
+                                        for (Face face : faces) {
+                                            Rect bounds = face.getBoundingBox();
+                                            Paint p1 = new Paint();
+                                            p1.setColor(Color.RED);
+                                            p1.setStyle(Paint.Style.STROKE);
+                                            p1.setStrokeWidth(15);
+                                            performFaceRecognition(bounds, input);
+                                            canvas.drawRect(bounds, p1);
+                                        }
+                                        imageView.setImageBitmap(mutableBmp);
+                                    }
+                                })
+                        .addOnFailureListener(
+                                new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        // Task failed with an exception
+                                        // ...
+                                    }
+                                });
+    }
+
+    public void performFaceRecognition(Rect bound, Bitmap input) {
+        if (bound.top < 0) {
+            bound.top = 0;
+        }
+        if (bound.left < 0) {
+            bound.left = 0;
+        }
+        if (bound.right > input.getWidth()) {
+            bound.right = input.getWidth() - 1;
+        }
+        if (bound.bottom > input.getHeight()) {
+            bound.bottom = input.getHeight() - 1;
+        }
+
+        Bitmap croppedFace = Bitmap.createBitmap(input, bound.left, bound.top, bound.width(), bound.height());
+//        imageView.setImageBitmap(croppedFace);
+        croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
+        FaceClassifier.Recognition recognition = faceClassifier.recognizeImage(croppedFace, false);
+
+        if (recognition != null) {
+            Log.d("FaceRecognition", recognition.getTitle() + "   " + recognition.getDistance());
+            Paint p1 = new Paint();
+            p1.setColor(Color.WHITE);
+            p1.setTextSize(35);
+            if (recognition.getDistance() < 1) {
+                canvas.drawText(recognition.getTitle(), bound.left, bound.top, p1);
+            }
+            else {
+                canvas.drawText("Unknown", bound.left, bound.top, p1);
+            }
+        }
+    }
+
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 }
