@@ -24,8 +24,9 @@ import java.util.Map;
 public class TFLiteFaceRecognition
         implements FaceClassifier {
 
-//    private static final int OUTPUT_SIZE = 512;
-    private static final int OUTPUT_SIZE = 192;
+    // CHANGE MODEL
+    private static final int OUTPUT_SIZE = 512;
+//    private static final int OUTPUT_SIZE = 192;
 
     // Only return this many results.
     private static final int NUM_DETECTIONS = 1;
@@ -118,7 +119,8 @@ public class TFLiteFaceRecognition
     }
 
 
-    //TODO TAKE INPUT IMAGE AND RETURN RECOGNITIONS
+    //TAKE INPUT IMAGE AND RETURN RECOGNITIONS
+    // bitmap = crop
     @Override
     public Recognition recognizeImage(final Bitmap bitmap, boolean storeExtra) {
         Log.d("BitmapInfo", "intValues length: " + intValues.length);
@@ -172,6 +174,7 @@ public class TFLiteFaceRecognition
                 new RectF());
 
 
+        // storeExtra bool true = new face to add
         if (storeExtra) {
             rec.setEmbedding(embeddings);
         }

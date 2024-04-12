@@ -72,7 +72,9 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
     private Integer useFacing = null;
     private static final String KEY_USE_FACING = "use_facing";
     private static final int CROP_SIZE = 1000;
-    private static final int TF_OD_API_INPUT_SIZE2 = 112;
+
+    // CHANGE MODEL
+    private static final int TF_OD_API_INPUT_SIZE2 = 160;
 
 //    //TODO declare face detector
     FaceDetector detector;
@@ -125,7 +127,8 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
             faceClassifier =
                     TFLiteFaceRecognition.create(
                             getAssets(),
-                            "mobile_face_net.tflite",
+                            // CHANGE MODEL
+                            "facenet.tflite",
                             TF_OD_API_INPUT_SIZE2,
                             false);
 
@@ -377,7 +380,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
     //TODO perform face recognition
     public void performFaceRecognition(Face face,Bitmap input){
-        //TODO crop the face
+        //crop the face
         Rect bounds = face.getBoundingBox();
         if(bounds.top < 0){
             bounds.top = 0;
@@ -405,6 +408,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         String title = "Unknown";
         float confidence = 0;
         if (result != null) {
+            // if add button was clicked
             if (registerFace){
                 registerFaceDialogue(crop,result);
             } else {

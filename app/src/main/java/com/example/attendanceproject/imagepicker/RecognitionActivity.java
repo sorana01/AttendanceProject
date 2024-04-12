@@ -119,7 +119,8 @@ public class RecognitionActivity extends AppCompatActivity {
 
         detector = FaceDetection.getClient(highAccuracyOpts);
         try {
-            faceClassifier = TFLiteFaceRecognition.create(getAssets(), "mobile_face_net.tflite", 112, false);
+            // CHANGE MODEL
+            faceClassifier = TFLiteFaceRecognition.create(getAssets(), "facenet.tflite", 160, false);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -249,7 +250,8 @@ public class RecognitionActivity extends AppCompatActivity {
 
         Bitmap croppedFace = Bitmap.createBitmap(input, bound.left, bound.top, bound.width(), bound.height());
 //        imageView.setImageBitmap(croppedFace);
-        croppedFace = Bitmap.createScaledBitmap(croppedFace, 112, 112, false);
+        // CHANGE MODEL
+        croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
         FaceClassifier.Recognition recognition = faceClassifier.recognizeImage(croppedFace, false);
 
         if (recognition != null) {
