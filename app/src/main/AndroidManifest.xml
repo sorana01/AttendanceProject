@@ -63,6 +63,11 @@
 
         <activity android:name=".imagepicker.RegisterActivity"
             android:exported="false" />
+        <activity android:name=".imagepicker.RecognitionActivityMine"
+            android:exported="false" />
+
+        <activity android:name=".imagepicker.RegisterActivityMine"
+            android:exported="false" />
 
 
     </application>

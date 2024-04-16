@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -64,6 +65,19 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
     private int sensorOrientation;
     private Matrix cropToFrameTransform;
 
+    //getting frames of live camera footage and passing them to model
+    private boolean isProcessingFrame = false;
+    private byte[][] yuvBytes = new byte[3][];
+    private int[] rgbBytes = null;
+    private int yRowStride;
+    private Runnable postInferenceCallback;
+    private Runnable imageConverter;
+    private Bitmap rgbFrameBitmap;
+    private Bitmap croppedBitmap;
+    private Bitmap faceBmp = null;
+    private Bitmap portraitBmp = null;
+
+
     private static final boolean MAINTAIN_ASPECT = false;
     private static final float TEXT_SIZE_DIP = 10;
     OverlayView trackingOverlay;
@@ -74,12 +88,13 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
     private static final int CROP_SIZE = 1000;
 
     // CHANGE MODEL
-    private static final int TF_OD_API_INPUT_SIZE2 = 160;
+    private static final int TF_OD_API_INPUT_SIZE = 160;
+    private static final int TF_OD_API_INPUT_SIZE2 = 112;
 
-//    //TODO declare face detector
-    FaceDetector detector;
+//    declare face detector
+    private FaceDetector detector;
 
-//    //TODO declare face recognizer
+//    declare face recognizer
     private FaceClassifier faceClassifier;
 
     boolean registerFace = false;
@@ -129,7 +144,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
                             getAssets(),
                             // CHANGE MODEL
                             "facenet.tflite",
-                            TF_OD_API_INPUT_SIZE2,
+                            TF_OD_API_INPUT_SIZE,
                             false);
 
         } catch (final IOException e) {
@@ -202,12 +217,28 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
                                 sensorOrientation = rotation - getScreenOrientation();
 
                                 rgbFrameBitmap = Bitmap.createBitmap(previewWidth, previewHeight, Bitmap.Config.ARGB_8888);
-                                croppedBitmap = Bitmap.createBitmap(cropSize, cropSize, Bitmap.Config.ARGB_8888);
+
+                                int targetW, targetH;
+                                if (sensorOrientation == 90 || sensorOrientation == 270) {
+                                    targetH = previewWidth;
+                                    targetW = previewHeight;
+                                }
+                                else {
+                                    targetW = previewWidth;
+                                    targetH = previewHeight;
+                                }
+                                int cropW = (int) (targetW / 2.0);
+                                int cropH = (int) (targetH / 2.0);
+
+                                croppedBitmap = Bitmap.createBitmap(cropW, cropH, Bitmap.Config.ARGB_8888);
+//                                croppedBitmap = Bitmap.createBitmap(cropSize, cropSize, Bitmap.Config.ARGB_8888);
+                                portraitBmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888);
+                                faceBmp = Bitmap.createBitmap(TF_OD_API_INPUT_SIZE, TF_OD_API_INPUT_SIZE, Bitmap.Config.ARGB_8888);
 
                                 frameToCropTransform =
                                         ImageUtils.getTransformationMatrix(
                                                 previewWidth, previewHeight,
-                                                cropSize, cropSize,
+                                                cropW, cropH,
                                                 sensorOrientation, MAINTAIN_ASPECT);
 
                                 cropToFrameTransform = new Matrix();
@@ -234,16 +265,6 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         getFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
     }
 
-
-    //TODO getting frames of live camera footage and passing them to model
-    private boolean isProcessingFrame = false;
-    private byte[][] yuvBytes = new byte[3][];
-    private int[] rgbBytes = null;
-    private int yRowStride;
-    private Runnable postInferenceCallback;
-    private Runnable imageConverter;
-    private Bitmap rgbFrameBitmap;
-    Bitmap croppedBitmap;
     @Override
     public void onImageAvailable(ImageReader reader) {
         // We need wait until we have some size from onPreviewSizeChosen
@@ -265,6 +286,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
                 return;
             }
             isProcessingFrame = true;
+            // convert frame to bitmap
             final Image.Plane[] planes = image.getPlanes();
             fillBytes(planes, yuvBytes);
             yRowStride = planes[0].getRowStride();
@@ -333,9 +355,10 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
     List<FaceClassifier.Recognition> mappedRecognitions;
 
-    //TODO Perform face detection
+    //Perform face detection
     public void performFaceDetection(){
         imageConverter.run();
+        // convert frame to bitmap
         rgbFrameBitmap.setPixels(rgbBytes, 0, previewWidth, 0, 0, previewWidth, previewHeight);
 
         final Canvas canvas = new Canvas(croppedBitmap);
@@ -378,39 +401,87 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         });
     }
 
-    //TODO perform face recognition
+    //perform face recognition
     public void performFaceRecognition(Face face,Bitmap input){
         //crop the face
-        Rect bounds = face.getBoundingBox();
-        if(bounds.top < 0){
-            bounds.top = 0;
-        }
-        if(bounds.left < 0){
-            bounds.left = 0;
-        }
-        if(bounds.left + bounds.width() > input.getWidth()){
-            bounds.right = input.getWidth() - 1;
-        }
-        if(bounds.top + bounds.height() > input.getHeight()){
-            bounds.bottom = input.getHeight() - 1;
+        RectF bounds = new RectF(face.getBoundingBox());
+//        if(bounds.top < 0){
+//            bounds.top = 0;
+//        }
+//        if(bounds.left < 0){
+//            bounds.left = 0;
+//        }
+//        if(bounds.left + bounds.width() > input.getWidth()){
+//            bounds.right = input.getWidth() - 1;
+//        }
+//        if(bounds.top + bounds.height() > input.getHeight()){
+//            bounds.bottom = input.getHeight() - 1;
+//        }
+//
+//        Bitmap crop = Bitmap.createBitmap(input,
+//                bounds.left,
+//                bounds.top,
+//                bounds.width(),
+//                // you can play with this value
+//                bounds.height());
+//        crop = Bitmap.createScaledBitmap(crop, TF_OD_API_INPUT_SIZE, TF_OD_API_INPUT_SIZE,false);
+
+        // Note this can be done only once
+        int sourceW = rgbFrameBitmap.getWidth();
+        int sourceH = rgbFrameBitmap.getHeight();
+        int targetW = portraitBmp.getWidth();
+        int targetH = portraitBmp.getHeight();
+        Matrix transform = createTransform(
+                sourceW,
+                sourceH,
+                targetW,
+                targetH,
+                sensorOrientation);
+        final Canvas cv = new Canvas(portraitBmp);
+
+        // draws the original image in portrait mode.
+        cv.drawBitmap(rgbFrameBitmap, transform, null);
+
+        final Canvas cvFace = new Canvas(faceBmp);
+
+        // maps crop coordinates to original
+        cropToFrameTransform.mapRect(bounds);
+
+        // maps original coordinates to portrait coordinates
+        RectF faceBB = new RectF(bounds);
+        transform.mapRect(faceBB);
+
+        // translates portrait to origin and scales to fit input inference size
+        float sx = ((float) TF_OD_API_INPUT_SIZE) / faceBB.width();
+        float sy = ((float) TF_OD_API_INPUT_SIZE) / faceBB.height();
+        Matrix matrix = new Matrix();
+        matrix.postTranslate(-faceBB.left, -faceBB.top);
+        matrix.postScale(sx, sy);
+
+        //faceBmp from portraitBmp cropped
+        cvFace.drawBitmap(portraitBmp, matrix, null);
+
+        String title = "";
+        float confidence = -1f;
+        Integer color = Color.BLUE;
+        Object extra = null;
+        Bitmap crop = null;
+
+        if (registerFace) {
+            // face saved ?
+            crop = Bitmap.createBitmap(portraitBmp,
+                    (int) faceBB.left,
+                    (int) faceBB.top,
+                    (int) faceBB.width(),
+                    (int) faceBB.height());
         }
 
-        Bitmap crop = Bitmap.createBitmap(input,
-                bounds.left,
-                bounds.top,
-                bounds.width(),
-                // you can play with this value
-                bounds.height());
-        crop = Bitmap.createScaledBitmap(crop, TF_OD_API_INPUT_SIZE2, TF_OD_API_INPUT_SIZE2,false);
 
-
-        final FaceClassifier.Recognition result = faceClassifier.recognizeImage(crop, registerFace);
-        String title = "Unknown";
-        float confidence = 0;
+        final FaceClassifier.Recognition result = faceClassifier.recognizeImage(faceBmp, registerFace);
         if (result != null) {
             // if add button was clicked
             if (registerFace){
-                registerFaceDialogue(crop,result);
+//                registerFaceDialogue(crop, recognition);
             } else {
                 // you can play with this value
                 if (result.getDistance() < 1f) {
@@ -420,16 +491,44 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
             }
         }
 
-        RectF location = new RectF(bounds);
-        if (bounds != null) {
-            if(useFacing == CameraCharacteristics.LENS_FACING_BACK) {
-                location.right = input.getWidth() - location.right;
-                location.left = input.getWidth() - location.left;
+        if (useFacing == CameraCharacteristics.LENS_FACING_FRONT) {
+
+            // camera is frontal so the image is flipped horizontally
+            // flips horizontally
+            Matrix flip = new Matrix();
+            if (sensorOrientation == 90 || sensorOrientation == 270) {
+                flip.postScale(1, -1, previewWidth / 2.0f, previewHeight / 2.0f);
             }
-            cropToFrameTransform.mapRect(location);
-            FaceClassifier.Recognition recognition = new FaceClassifier.Recognition(face.getTrackingId() + "", title, confidence, location);
-            mappedRecognitions.add(recognition);
+            else {
+                flip.postScale(-1, 1, previewWidth / 2.0f, previewHeight / 2.0f);
+            }
+            flip.mapRect(bounds);
+
         }
+
+        final FaceClassifier.Recognition recognition = new FaceClassifier.Recognition(
+                "0", title, confidence, bounds);
+
+//        recognition.setColor(color);
+        recognition.setLocation(bounds);
+//        recognition.setExtra(extra);
+        recognition.setCrop(crop);
+        mappedRecognitions.add(recognition);
+
+        if (registerFace) {
+            registerFaceDialogue(crop, recognition);
+        }
+
+//        RectF location = new RectF(bounds);
+//        if (bounds != null) {
+//            if(useFacing == CameraCharacteristics.LENS_FACING_BACK) {
+//                location.right = input.getWidth() - location.right;
+//                location.left = input.getWidth() - location.left;
+//            }
+//            cropToFrameTransform.mapRect(location);
+//            FaceClassifier.Recognition recognition = new FaceClassifier.Recognition(face.getTrackingId() + "", title, confidence, location);
+//            mappedRecognitions.add(recognition);
+//        }
 
     }
 
@@ -446,7 +545,8 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         ImageView ivFace = dialog.findViewById(R.id.dlg_image);
         EditText nameEd = dialog.findViewById(R.id.dlg_input);
         Button register = dialog.findViewById(R.id.button2);
-        ivFace.setImageBitmap(croppedFace);
+        ivFace.setImageBitmap(rec.getCrop());
+        Log.d("FACE", "Recognition stored is "+ rec.getTitle());
         register.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -486,5 +586,35 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         overridePendingTransition(0, 0);
         startActivity(intent);
         overridePendingTransition(0, 0);
+    }
+
+    private Matrix createTransform(
+            final int srcWidth,
+            final int srcHeight,
+            final int dstWidth,
+            final int dstHeight,
+            final int applyRotation) {
+
+        Matrix matrix = new Matrix();
+        if (applyRotation != 0) {
+            if (applyRotation % 90 != 0) {
+                Log.d("Rotation","Rotation of " + applyRotation + "% 90 != 0");
+            }
+
+            // Translate so center of image is at origin.
+            matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f);
+
+            // Rotate around origin.
+            matrix.postRotate(applyRotation);
+        }
+
+        if (applyRotation != 0) {
+
+            // Translate back from origin centered reference to destination frame.
+            matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f);
+        }
+
+        return matrix;
+
     }
 }

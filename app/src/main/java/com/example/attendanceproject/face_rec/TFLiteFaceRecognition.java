@@ -49,6 +49,14 @@ public class TFLiteFaceRecognition
 
 
     public void register(String name, Recognition rec) {
+        Map<String, Recognition> recognitionMap = new HashMap<>();
+
+        for (Map.Entry<String, Recognition> entry : recognitionMap.entrySet()) {
+            if (entry.getKey().equals(name)) {
+                return;
+            }
+        }
+
         MainActivity2.registered.put(name, rec);
     }
 
@@ -97,10 +105,11 @@ public class TFLiteFaceRecognition
         return d;
     }
 
-    //TODO  looks for the nearest embedding in the dataset
+    //looks for the nearest embedding in the dataset
     // and returns the pair <id, distance>
     private Pair<String, Float> findNearest(float[] emb) {
         Pair<String, Float> ret = null;
+
         for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
             final String name = entry.getKey();
             final float[] knownEmb = ((float[][]) entry.getValue().getEmbedding())[0];
@@ -123,8 +132,8 @@ public class TFLiteFaceRecognition
     // bitmap = crop
     @Override
     public Recognition recognizeImage(final Bitmap bitmap, boolean storeExtra) {
-        Log.d("BitmapInfo", "intValues length: " + intValues.length);
-        Log.d("BitmapInfo", "Bitmap dimensions: " + bitmap.getWidth() + "x" + bitmap.getHeight());
+//        Log.d("BitmapInfo", "intValues length: " + intValues.length);
+//        Log.d("BitmapInfo", "Bitmap dimensions: " + bitmap.getWidth() + "x" + bitmap.getHeight());
 
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         imgData.rewind();
@@ -152,6 +161,7 @@ public class TFLiteFaceRecognition
 
         // Run the inference call.
         tfLite.runForMultipleInputsOutputs(inputArray, outputMap);
+        Log.d("TFLiteFaceRec", "Embedding content " + outputMap + ", " + embeddings[0]);
 
 
         float distance = Float.MAX_VALUE;
