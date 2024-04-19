@@ -18,7 +18,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TFLiteFaceRecognition
@@ -49,16 +52,76 @@ public class TFLiteFaceRecognition
 
 
     public void register(String name, Recognition rec) {
-        Map<String, Recognition> recognitionMap = new HashMap<>();
-
-        for (Map.Entry<String, Recognition> entry : recognitionMap.entrySet()) {
-            if (entry.getKey().equals(name)) {
-                return;
-            }
-        }
+//        Map<String, Recognition> recognitionMap = new HashMap<>();
+//
+//        for (Map.Entry<String, Recognition> entry : recognitionMap.entrySet()) {
+//            if (entry.getKey().equals(name)) {
+//                return;
+//            }
+//        }
 
         MainActivity2.registered.put(name, rec);
     }
+
+    public void registerMul(String name, Recognition rec) {
+        if (MainActivity2.registered.containsKey(name)) {
+            Recognition existingRec = MainActivity2.registered.get(name);
+            List<float[]> embeddings;
+            if (existingRec.getEmbedding() instanceof List) {
+                embeddings = (List<float[]>) existingRec.getEmbedding();
+            } else {
+                embeddings = new ArrayList<>();
+                embeddings.add(((float[][]) existingRec.getEmbedding())[0]); // Cast and add the existing single embedding
+            }
+            embeddings.add(((float[][]) rec.getEmbedding())[0]); // Add the new embedding
+            existingRec.setEmbedding(embeddings);
+        } else {
+            List<float[]> newEmbeddingList = new ArrayList<>();
+            newEmbeddingList.add(((float[][]) rec.getEmbedding())[0]); // Start with a list even for a single new entry
+            rec.setEmbedding(newEmbeddingList);
+            MainActivity2.registered.put(name, rec);
+        }
+    }
+
+
+    public void finalizeEmbeddings() {
+        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
+            Object embedding = entry.getValue().getEmbedding();
+            if (embedding instanceof List) {
+                List<float[]> embeddings = (List<float[]>) embedding;
+                if (!embeddings.isEmpty()) {
+                    float[] averagedEmbedding = averageEmbeddings(embeddings);
+                    // Check if averagedEmbedding is not null before setting
+                    if (averagedEmbedding != null) {
+                        entry.getValue().setEmbedding(averagedEmbedding);
+                        Log.d("EMB_MUL", "For " + entry.getKey() + " value is " + Arrays.toString(averagedEmbedding));
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    private float[] averageEmbeddings(List<float[]> embeddings) {
+        if (embeddings == null || embeddings.isEmpty()) return null;
+        int length = embeddings.get(0).length; // Assume all embeddings have the same length
+        float[] sumEmbedding = new float[length];
+        for (float[] emb : embeddings) {
+            for (int i = 0; i < emb.length; i++) {
+                sumEmbedding[i] += emb[i];
+            }
+        }
+        for (int i = 0; i < length; i++) {
+            sumEmbedding[i] /= embeddings.size();
+        }
+        return sumEmbedding;
+    }
+
+
+
+
+
 
     private TFLiteFaceRecognition() {}
 
@@ -107,6 +170,26 @@ public class TFLiteFaceRecognition
 
     //looks for the nearest embedding in the dataset
     // and returns the pair <id, distance>
+    private Pair<String, Float> findNearestMul(float[] emb) {
+        Pair<String, Float> ret = null;
+
+        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
+            final String name = entry.getKey();
+            final float[] knownEmb = (float[]) entry.getValue().getEmbedding();
+
+            float distance = 0;
+            for (int i = 0; i < emb.length; i++) {
+                float diff = emb[i] - knownEmb[i];
+                distance += diff*diff;
+            }
+            distance = (float) Math.sqrt(distance);
+            if (ret == null || distance < ret.second) {
+                ret = new Pair<>(name, distance);
+            }
+        }
+        return ret;
+    }
+
     private Pair<String, Float> findNearest(float[] emb) {
         Pair<String, Float> ret = null;
 
@@ -130,6 +213,61 @@ public class TFLiteFaceRecognition
 
     //TAKE INPUT IMAGE AND RETURN RECOGNITIONS
     // bitmap = crop
+    @Override
+    public Recognition recognizeImageRec(final Bitmap bitmap, boolean storeExtra) {
+//        Log.d("BitmapInfo", "intValues length: " + intValues.length);
+//        Log.d("BitmapInfo", "Bitmap dimensions: " + bitmap.getWidth() + "x" + bitmap.getHeight());
+
+        bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
+        imgData.rewind();
+        for (int i = 0; i < inputSize; ++i) {
+            for (int j = 0; j < inputSize; ++j) {
+                int pixelValue = intValues[i * inputSize + j];
+                if (isModelQuantized) {
+                    // Quantized model
+                    imgData.put((byte) ((pixelValue >> 16) & 0xFF));
+                    imgData.put((byte) ((pixelValue >> 8) & 0xFF));
+                    imgData.put((byte) (pixelValue & 0xFF));
+                } else { // Float model
+                    imgData.putFloat((((pixelValue >> 16) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
+                    imgData.putFloat((((pixelValue >> 8) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
+                    imgData.putFloat(((pixelValue & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
+                }
+            }
+        }
+        Object[] inputArray = {imgData};
+        // Here outputMap is changed to fit the Face Mask detector
+        Map<Integer, Object> outputMap = new HashMap<>();
+
+        embeddings = new float[1][OUTPUT_SIZE];
+        outputMap.put(0, embeddings);
+
+        // Run the inference call.
+        tfLite.runForMultipleInputsOutputs(inputArray, outputMap);
+        Log.d("TFLiteFaceRec", "Embedding content " + outputMap + ", " + embeddings[0]);
+
+
+        float distance = Float.MAX_VALUE;
+        String id = "0";
+        String label = "?";
+
+
+        final int numDetectionsOutput = 1;
+        Recognition rec = new Recognition(
+                id,
+                label,
+                distance,
+                new RectF());
+
+
+        // storeExtra bool true = new face to add
+        if (storeExtra) {
+            rec.setEmbedding(embeddings);
+        }
+
+        return rec;
+    }
+
     @Override
     public Recognition recognizeImage(final Bitmap bitmap, boolean storeExtra) {
 //        Log.d("BitmapInfo", "intValues length: " + intValues.length);
@@ -169,7 +307,7 @@ public class TFLiteFaceRecognition
         String label = "?";
 
         if (MainActivity2.registered.size() > 0) {
-            final Pair<String, Float> nearest = findNearest(embeddings[0]);
+            final Pair<String, Float> nearest = findNearestMul(embeddings[0]);
             if (nearest != null) {
                 final String name = nearest.first;
                 label = name;

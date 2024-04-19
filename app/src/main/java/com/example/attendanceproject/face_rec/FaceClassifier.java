@@ -6,9 +6,15 @@ import android.graphics.RectF;
 /** Generic interface for interacting with different recognition engines. */
 public interface FaceClassifier {
 
+    void registerMul(String name, Recognition recognition);
+
     void register(String name, Recognition recognition);
 
+    void finalizeEmbeddings();
+
     Recognition recognizeImage(Bitmap bitmap, boolean getExtra);
+
+    Recognition recognizeImageRec(Bitmap bitmap, boolean getExtra);
 
     public class Recognition {
         private final String id;
