@@ -1,6 +1,5 @@
 package com.example.attendanceproject.imagepicker;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
@@ -32,7 +31,6 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
 import android.widget.Toast;
@@ -40,9 +38,6 @@ import android.widget.Toast;
 import com.example.attendanceproject.R;
 import com.example.attendanceproject.face_rec.FaceClassifier;
 import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceDetection;
@@ -207,38 +202,30 @@ public class RegisterActivityMine extends AppCompatActivity {
         return cropped;
     }
 
-    public void performFaceDetection(Bitmap input, String name) {
+    public void performFaceDetection(Bitmap input, String name, CountDownLatch latch) {
         Bitmap mutableBmp = input.copy(Bitmap.Config.ARGB_8888, true);
         Canvas canvas = new Canvas(mutableBmp);
         InputImage image = InputImage.fromBitmap(input, 0);
-        Task<List<Face>> result =
-                detector.process(image)
-                        .addOnSuccessListener(
-                                new OnSuccessListener<List<Face>>() {
-                                    @Override
-                                    public void onSuccess(List<Face> faces) {
-                                        // Task completed successfully
-                                        Log.d("tryFace", "Len= " + faces.size());
-                                        for (Face face : faces) {
-                                            Rect bounds = face.getBoundingBox();
-                                            Paint p1 = new Paint();
-                                            p1.setColor(Color.RED);
-                                            p1.setStyle(Paint.Style.STROKE);
-                                            p1.setStrokeWidth(15);
-                                            performFaceRecognition(bounds, input, name);
-                                            canvas.drawRect(bounds, p1);
-                                        }
-                                        imageView.setImageBitmap(mutableBmp);
-                                    }
-                                })
-                        .addOnFailureListener(
-                                new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        // Task failed with an exception
-                                    }
-                                });
+        detector.process(image)
+                .addOnSuccessListener(faces -> {
+                    for (Face face : faces) {
+                        Rect bounds = face.getBoundingBox();
+                        Paint p1 = new Paint();
+                        p1.setColor(Color.RED);
+                        p1.setStyle(Paint.Style.STROKE);
+                        p1.setStrokeWidth(15);
+                        performFaceRecognition(bounds, input, name);
+                        canvas.drawRect(bounds, p1);
+                    }
+                    imageView.setImageBitmap(mutableBmp);
+                    latch.countDown(); // Decrement the latch count
+                })
+                .addOnFailureListener(e -> {
+                    // Even on failure, you must decrement the latch
+                    latch.countDown();
+                });
     }
+
 
     public void performFaceRecognition(Rect bound, Bitmap input, String name) {
         if (bound.top < 0) {
@@ -258,13 +245,13 @@ public class RegisterActivityMine extends AppCompatActivity {
 //        imageView.setImageBitmap(croppedFace);
         // CHANGE MODEL
         croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
-        FaceClassifier.Recognition recognition = faceClassifier.recognizeImage(croppedFace, true);
+        FaceClassifier.Recognition recognition = faceClassifier.recognizeImageRec(croppedFace, true);
 //        Log.d("RegisterActivity", recognition.toString());
 //        showRegisterDialogue(croppedFace, recognition);
         Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
-        embeddingsList.add((float[][]) (recognition.getEmbedding()));
-        Log.d("EMBEDDINGS", "Embedding number " + embeddingsList.size() + " with content " + recognition.getEmbedding() + " added");
-        faceClassifier.register(name, recognition);
+//        embeddingsList.add((float[][]) (recognition.getEmbedding()));
+//        Log.d("EMBEDDINGS", "Embedding number " + embeddingsList.size() + " with content " + recognition.getEmbedding() + " added");
+        faceClassifier.registerMul(name, recognition);
     }
 
     public void showRegisterDialogue(Bitmap face, FaceClassifier.Recognition recognition) {
@@ -294,81 +281,46 @@ public class RegisterActivityMine extends AppCompatActivity {
     public List<Bitmap> loadBitmapsFromAssets() {
         List<Bitmap> bitmaps = new ArrayList<>();
         AssetManager assetManager = getAssets();
-        String[] individuals;
-//        embeddingsList = new ArrayList<>();
-
+        String[] imageFiles;
 
         try {
-            // Navigate to the 'individual_photos' directory
-            individuals = assetManager.list("individual_photos");
-            if (individuals == null) return bitmaps;
+            imageFiles = assetManager.list("one_photo");
+            if (imageFiles == null) return bitmaps;
 
-            // Loop through each individual's folder
-            for (String individual : individuals) {
-                String path = "individual_photos/" + individual;
-                String[] images = assetManager.list(path);
+            // Initialize the latch with the number of image files
+            final CountDownLatch latch = new CountDownLatch(imageFiles.length);
 
-                if (images == null) continue;
+            for (String imageFileName : imageFiles) {
+                String imagePath = "one_photo/" + imageFileName;
+                InputStream is = assetManager.open(imagePath);
+                Bitmap bitmap = BitmapFactory.decodeStream(is);
+                bitmaps.add(bitmap);
 
-                // Loop through each image in the individual's folder
-                for (String image : images) {
-                    String imagePath = path + "/" + image;
-                    InputStream is = assetManager.open(imagePath);
-                    Bitmap bitmap = BitmapFactory.decodeStream(is);
-//                    bitmap = rotateBitmap(bitmap);
-                    bitmaps.add(bitmap);
-                    Log.d("BITMAPS", "Bitmap named " + imagePath + " added");
-
-                    performFaceDetection(bitmap, individual);
-                    Log.d("SIZE 1", "Size of list is " + embeddingsList.size());
-                    is.close();
-                }
-
-                            // All face detection tasks have completed, continue processing on UI Thread
-                            Log.d("SIZE 2", "Size of list is " + embeddingsList.size());
-                            float[] avg = averageEmbeddings(); // Make sure averageEmbeddings returns float[]
-                            Log.d("CONTENT AVG", "Average embeddings computed");
-
-                            // Assuming processing and updating tasks here
-                            if (MainActivity2.registered.containsKey(individual)) {
-                                FaceClassifier.Recognition rec = MainActivity2.registered.get(individual);
-                                if (rec != null) {
-                                    rec.setEmbedding(avg);
-                                } else {
-                                    System.out.println("Recognition object is null for name: " + individual);
-                                }
-                            }
-                            embeddingsList.clear(); // Clear the list for the next individual
-
-
+                // Normalize the name to ensure consistency in identification
+                String normalizedFileName = normalizeName(imageFileName);
+                performFaceDetection(bitmap, normalizedFileName, latch); // Pass the normalized name
+                is.close();
             }
+
+            // Wait for all tasks to complete
+            new Thread(() -> {
+                try {
+                    latch.await();
+                    runOnUiThread(() -> faceClassifier.finalizeEmbeddings());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return bitmaps;
     }
 
-    private float[] averageEmbeddings() {
-        Log.d("AVG EMBED", "Number of embeddings in list is " + embeddingsList.size());
-        if (embeddingsList.isEmpty()) return null;  // Return null or throw an exception if the list is empty
-
-        final int dimension = embeddingsList.get(0)[0].length;  // Assuming each float[][] contains exactly one float[]
-        float[] average = new float[dimension];
-
-        // Sum all embeddings
-        for (float[][] embedding : embeddingsList) {
-            for (int i = 0; i < dimension; i++) {
-                average[i] += embedding[0][i];  // Access the first and only float[] in the float[][]
-            }
-        }
-
-        // Compute average
-        for (int i = 0; i < dimension; i++) {
-            average[i] /= embeddingsList.size();
-        }
-
-        return average;
+    private String normalizeName(String fileName) {
+        // Remove the numerical suffix and the file extension from the filename
+        return fileName.replaceAll("(_\\d+)?(\\.[^.]+)$", "");
     }
 
     @Override
