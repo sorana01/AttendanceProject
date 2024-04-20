@@ -23,11 +23,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class UserAccountActivity extends AppCompatActivity {
     private ImageView userImageView;
     private Button buttonSavePhoto;
     private Button buttonChoosePhoto;
-
     private Uri imageUri;
     private FirebaseStorage storage = FirebaseStorage.getInstance();
     private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
@@ -73,13 +75,18 @@ public class UserAccountActivity extends AppCompatActivity {
     }
 
     private void uploadImageToFirebaseStorage() {
-        if (imageUri != null) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null && imageUri != null) {
+            // Assuming the full name is stored and accessible, otherwise you need to fetch it
+            final String userFullName = user.getDisplayName(); // Adjust if necessary
+            String fileName = "profileImages/" + user.getUid() + "_" + System.currentTimeMillis() + "." + getFileExtension(imageUri);
             StorageReference storageReference = storage.getReference();
-            StorageReference fileReference = storageReference.child("profileImages/" + System.currentTimeMillis() + "." + getFileExtension(imageUri));
+            StorageReference fileReference = storageReference.child(fileName);
 
             fileReference.putFile(imageUri).addOnSuccessListener(taskSnapshot -> fileReference.getDownloadUrl().addOnSuccessListener(uri -> {
                 String downloadUrl = uri.toString();
-                saveImageUrlToFirestore(downloadUrl);
+                // Call to save image details along with full name in Firestore
+                saveImageDetailsToFirestore(downloadUrl, fileName, userFullName);
             })).addOnFailureListener(e -> {
                 Toast.makeText(UserAccountActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
             });
@@ -88,21 +95,30 @@ public class UserAccountActivity extends AppCompatActivity {
         }
     }
 
+
+
     private String getFileExtension(Uri uri) {
         ContentResolver cR = getContentResolver();
         MimeTypeMap mime = MimeTypeMap.getSingleton();
         return mime.getExtensionFromMimeType(cR.getType(uri));
     }
 
-    private void saveImageUrlToFirestore(String imageUrl) {
+    private void saveImageDetailsToFirestore(String imageUrl, String fileName, String userFullName) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             DocumentReference userDocRef = firestore.collection("users").document(user.getUid());
-            userDocRef.update("photoURL", imageUrl).addOnSuccessListener(aVoid -> {
-                Toast.makeText(UserAccountActivity.this, "Image saved in Firestore", Toast.LENGTH_SHORT).show();
+            Map<String, Object> imageData = new HashMap<>();
+            imageData.put("imageUrl", imageUrl);
+            imageData.put("uploadTime", System.currentTimeMillis());
+            imageData.put("fileName", fileName);
+            imageData.put("fullName", userFullName);  // Storing the full name along with image
+
+            userDocRef.collection("images").add(imageData).addOnSuccessListener(aVoid -> {
+                Toast.makeText(UserAccountActivity.this, "Image and user details saved in Firestore", Toast.LENGTH_SHORT).show();
             }).addOnFailureListener(e -> {
-                Toast.makeText(UserAccountActivity.this, "Error saving image in Firestore", Toast.LENGTH_SHORT).show();
+                Toast.makeText(UserAccountActivity.this, "Error saving image and user details", Toast.LENGTH_SHORT).show();
             });
         }
     }
+
 }
