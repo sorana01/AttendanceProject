@@ -215,9 +215,6 @@ public class TFLiteFaceRecognition
     // bitmap = crop
     @Override
     public Recognition recognizeImageRec(final Bitmap bitmap, boolean storeExtra) {
-//        Log.d("BitmapInfo", "intValues length: " + intValues.length);
-//        Log.d("BitmapInfo", "Bitmap dimensions: " + bitmap.getWidth() + "x" + bitmap.getHeight());
-
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         imgData.rewind();
         for (int i = 0; i < inputSize; ++i) {

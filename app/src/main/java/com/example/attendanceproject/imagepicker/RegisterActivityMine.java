@@ -294,6 +294,7 @@ public class RegisterActivityMine extends AppCompatActivity {
                 String imagePath = "one_photo/" + imageFileName;
                 InputStream is = assetManager.open(imagePath);
                 Bitmap bitmap = BitmapFactory.decodeStream(is);
+                bitmap = rotateBitmap(bitmap);
                 bitmaps.add(bitmap);
 
                 // Normalize the name to ensure consistency in identification
