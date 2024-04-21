@@ -3,12 +3,17 @@ package com.example.attendanceproject.face_rec;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 
+import com.example.attendanceproject.UserAccountActivity;
+
 /** Generic interface for interacting with different recognition engines. */
 public interface FaceClassifier {
 
     void registerMul(String name, Recognition recognition);
 
     void register(String name, Recognition recognition);
+
+    void registerDb(String name, Recognition recognition, UserAccountActivity activity);
+
 
     void finalizeEmbeddings();
 
