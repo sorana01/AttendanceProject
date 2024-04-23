@@ -150,6 +150,7 @@ public class TFLiteFaceRecognition
     public void registerMul(String name, Recognition rec) {
         if (MainActivity2.registered.containsKey(name)) {
             Recognition existingRec = MainActivity2.registered.get(name);
+            // this part feels redundant - we already have a list from last else
             List<float[]> embeddings;
             if (existingRec.getEmbedding() instanceof List) {
                 embeddings = (List<float[]>) existingRec.getEmbedding();
@@ -241,30 +242,36 @@ public class TFLiteFaceRecognition
             test2.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
                 @Override
                 public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
-
                     try {
-
                         Gson gson = new Gson();
                         ObjectInputStream i = new ObjectInputStream(new FileInputStream(localFile));
 
                         Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
                         HashMap<String, Recognition> registeredDb = gson.fromJson((String)i.readObject(), type);
-
-                        if (registeredDb != null){
-                            d.registered = registeredDb;
-                        }
                         i.close();
+
+                        // Check if the map is not empty
+                        if (registeredDb != null && !registeredDb.isEmpty()){
+                            d.registered = registeredDb;
+                            // Logging each key-value pair
+                            for (Map.Entry<String, Recognition> entry : registeredDb.entrySet()) {
+                                Log.d("REGISTERED_DB", "Key: " + entry.getKey() + ", Value: " + entry.getValue().toString());
+                            }
+                        } else {
+                            Log.d("REGISTERED_DB", "The registered database is empty or null.");
+                        }
 
                         Toast.makeText(context, "Content embeddings read", Toast.LENGTH_LONG ).show();
 
                     } catch (Exception e) {
+                        Log.d("REGISTERED_DB_EXCEPTION", "Exception when reading and processing file: " + e.toString());
                         Toast.makeText(context, "Exception 1" + e.getMessage(), Toast.LENGTH_LONG ).show();
                     }
                 }
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception exception) {
-                    Log.d("Clique AQUI", "Clique Aqui erro " + exception.toString());
+                    Log.d("DOWNLOAD_FAILURE", "Error downloading file: " + exception.toString());
                     Toast.makeText(context, "Exception 2 " + exception.getMessage(), Toast.LENGTH_LONG ).show();
                 }
             });

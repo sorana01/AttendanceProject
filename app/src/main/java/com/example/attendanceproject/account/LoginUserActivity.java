@@ -54,7 +54,7 @@ public class LoginUserActivity extends AppCompatActivity{
                     }).addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-
+                            Toast.makeText(LoginUserActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     });
                 }

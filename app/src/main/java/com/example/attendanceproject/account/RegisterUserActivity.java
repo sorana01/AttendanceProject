@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -17,6 +18,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -76,23 +78,38 @@ public class RegisterUserActivity extends AppCompatActivity {
                         @Override
                         public void onSuccess(AuthResult authResult) {
                             FirebaseUser user = fAuth.getCurrentUser();
-                            Toast.makeText(RegisterUserActivity.this, "Account created", Toast.LENGTH_SHORT).show();
-                            DocumentReference df = fStore.collection("Users").document(user.getUid());
-                            Map<String, Object> userInfo = new HashMap<>();
-                            userInfo.put("FullName", fullNameEditText.getText().toString());
-                            userInfo.put("UserEmail", emailEditText.getText().toString());
-                            userInfo.put("PhoneNumber", phoneEditText.getText().toString());
+                            if (user != null) {
+                                // Setting the display name in the Firebase Auth profile
+                                UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                                        .setDisplayName(fullNameEditText.getText().toString())
+                                        .build();
 
-                            // Correct casting to CheckBox and checking if they are checked
-                            CheckBox isTeacherCheckbox = findViewById(R.id.isTeacher);
-                            CheckBox isStudentCheckbox = findViewById(R.id.isStudent);
-                            boolean isTeacher = isTeacherCheckbox.isChecked();
-                            boolean isStudent = isStudentCheckbox.isChecked();
-                            userInfo.put("isTeacher", isTeacher);
-                            userInfo.put("isStudent", isStudent);
-                            userInfo.put("isApproved", isApproved);
+                                user.updateProfile(profileUpdates)
+                                        .addOnCompleteListener(task -> {
+                                            if (task.isSuccessful()) {
+                                                Log.d("Profile Update", "User profile updated with display name.");
+                                            }
+                                        });
 
-                            df.set(userInfo);
+                                // Prepare user info for Firestore
+                                DocumentReference df = fStore.collection("Users").document(user.getUid());
+                                Map<String, Object> userInfo = new HashMap<>();
+                                userInfo.put("FullName", fullNameEditText.getText().toString());
+                                userInfo.put("UserEmail", emailEditText.getText().toString());
+                                userInfo.put("PhoneNumber", phoneEditText.getText().toString());
+                                boolean isTeacher = teacherCheckBox.isChecked();
+                                boolean isStudent = studentCheckBox.isChecked();
+                                userInfo.put("isTeacher", isTeacher);
+                                userInfo.put("isStudent", isStudent);
+                                userInfo.put("isApproved", isApproved);
+
+                                // Save the user info to Firestore
+                                df.set(userInfo).addOnSuccessListener(aVoid -> {
+                                    Toast.makeText(RegisterUserActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
+                                }).addOnFailureListener(e -> {
+                                    Log.e("Firestore Save Error", "Failed to save user data", e);
+                                });
+                            }
 
                             startActivity(new Intent(getApplicationContext(), LoginUserActivity.class));
                             finish();
@@ -100,7 +117,8 @@ public class RegisterUserActivity extends AppCompatActivity {
                     }).addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            Toast.makeText(RegisterUserActivity.this, "Failed to create account", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(RegisterUserActivity.this, "Email already in use!", Toast.LENGTH_SHORT).show();
+                            Log.e("Firestore Save Error", "Failed to save user data", e);
                         }
                     });
 
