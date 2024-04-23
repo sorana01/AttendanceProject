@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".LoginUserActivity">
+    tools:context=".account.LoginUserActivity">
 
     <androidx.cardview.widget.CardView
         android:layout_width="0dp"

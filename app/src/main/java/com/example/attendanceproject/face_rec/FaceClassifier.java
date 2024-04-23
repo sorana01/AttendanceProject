@@ -1,5 +1,6 @@
 package com.example.attendanceproject.face_rec;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 
@@ -12,7 +13,7 @@ public interface FaceClassifier {
 
     void register(String name, Recognition recognition);
 
-    void registerDb(String name, Recognition recognition, UserAccountActivity activity);
+    void registerDb(String name, Recognition recognition, Context context);
 
 
     void finalizeEmbeddings();

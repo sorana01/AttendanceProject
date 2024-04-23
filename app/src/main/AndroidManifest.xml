@@ -44,13 +44,13 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".AdminActivity"
+            android:name=".account.AdminActivity"
             android:exported="false" />
         <activity
-            android:name=".TeacherActivity"
+            android:name=".account.TeacherActivity"
             android:exported="false" />
         <activity
-            android:name=".StudentActivity"
+            android:name=".account.StudentActivity"
             android:exported="false" />
         <activity
             android:name=".UserAccountActivity"
@@ -92,10 +92,10 @@
             android:name=".imagepicker.RegisterActivityMine"
             android:exported="false" />
         <activity
-            android:name=".RegisterUserActivity"
+            android:name=".account.RegisterUserActivity"
             android:exported="false" />
         <activity
-            android:name=".LoginUserActivity"
+            android:name=".account.LoginUserActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

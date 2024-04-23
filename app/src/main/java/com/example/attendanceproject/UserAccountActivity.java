@@ -145,7 +145,7 @@ public class UserAccountActivity extends AppCompatActivity {
         detector = FaceDetection.getClient(highAccuracyOpts);
         try {
             // CHANGE MODEL
-            faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, UserAccountActivity.this);
+            faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, this);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
