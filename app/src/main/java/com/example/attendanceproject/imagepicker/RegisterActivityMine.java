@@ -122,7 +122,7 @@ public class RegisterActivityMine extends AppCompatActivity {
         detector = FaceDetection.getClient(highAccuracyOpts);
         try {
             // CHANGE MODEL
-            faceClassifier = TFLiteFaceRecognition.create(getAssets(), "facenet.tflite", 160, false);
+            faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, this);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -202,7 +202,7 @@ public class RegisterActivityMine extends AppCompatActivity {
         return cropped;
     }
 
-    public void performFaceDetection(Bitmap input, String name, CountDownLatch latch) {
+    public void performFaceDetection(Bitmap input, String name) {
         Bitmap mutableBmp = input.copy(Bitmap.Config.ARGB_8888, true);
         Canvas canvas = new Canvas(mutableBmp);
         InputImage image = InputImage.fromBitmap(input, 0);
@@ -218,11 +218,10 @@ public class RegisterActivityMine extends AppCompatActivity {
                         canvas.drawRect(bounds, p1);
                     }
                     imageView.setImageBitmap(mutableBmp);
-                    latch.countDown(); // Decrement the latch count
                 })
                 .addOnFailureListener(e -> {
                     // Even on failure, you must decrement the latch
-                    latch.countDown();
+
                 });
     }
 
@@ -251,7 +250,8 @@ public class RegisterActivityMine extends AppCompatActivity {
         Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
 //        embeddingsList.add((float[][]) (recognition.getEmbedding()));
 //        Log.d("EMBEDDINGS", "Embedding number " + embeddingsList.size() + " with content " + recognition.getEmbedding() + " added");
-        faceClassifier.registerMul(name, recognition);
+//        faceClassifier.registerMul(name, recognition);
+        faceClassifier.registerDb(name, recognition, this);
     }
 
     public void showRegisterDialogue(Bitmap face, FaceClassifier.Recognition recognition) {
@@ -287,31 +287,20 @@ public class RegisterActivityMine extends AppCompatActivity {
             imageFiles = assetManager.list("one_photo");
             if (imageFiles == null) return bitmaps;
 
-            // Initialize the latch with the number of image files
-            final CountDownLatch latch = new CountDownLatch(imageFiles.length);
 
             for (String imageFileName : imageFiles) {
                 String imagePath = "one_photo/" + imageFileName;
                 InputStream is = assetManager.open(imagePath);
                 Bitmap bitmap = BitmapFactory.decodeStream(is);
-                bitmap = rotateBitmap(bitmap);
+//                bitmap = rotateBitmap(bitmap);
                 bitmaps.add(bitmap);
 
                 // Normalize the name to ensure consistency in identification
                 String normalizedFileName = normalizeName(imageFileName);
-                performFaceDetection(bitmap, normalizedFileName, latch); // Pass the normalized name
+                performFaceDetection(bitmap, normalizedFileName); // Pass the normalized name
                 is.close();
             }
 
-            // Wait for all tasks to complete
-            new Thread(() -> {
-                try {
-                    latch.await();
-                    runOnUiThread(() -> faceClassifier.finalizeEmbeddings());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }).start();
 
         } catch (IOException e) {
             e.printStackTrace();

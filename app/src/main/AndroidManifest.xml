@@ -5,6 +5,12 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -17,67 +23,86 @@
         tools:targetApi="31">
 
         <!-- Facebook SDK Meta-data -->
-        <meta-data android:name="com.facebook.sdk.ApplicationId"
-            android:value="@string/facebook_application_id"/>
-        <meta-data android:name="com.facebook.sdk.ClientToken"
-            android:value="@string/facebook_client_token"/>
-        <meta-data android:name="com.facebook.sdk.ApplicationProtocolScheme"
-            android:value="@string/facebook_login_protocol_scheme"/>
-
-        <!-- Declare FirebaseUIActivity here and make it the start activity -->
-        <activity android:name=".FirebaseUIActivity"
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_application_id" />
+        <meta-data
+            android:name="com.facebook.sdk.ClientToken"
+            android:value="@string/facebook_client_token" />
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationProtocolScheme"
+            android:value="@string/facebook_login_protocol_scheme" /> <!-- Declare FirebaseUIActivity here and make it the start activity -->
+        <activity
+            android:name=".FirebaseUIActivity"
             android:exported="true">
+
             <!-- Intent filter to catch MAIN action and LAUNCHER category -->
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name=".UserAccountActivity"
+        <activity
+            android:name=".account.AdminActivity"
+            android:exported="false" />
+        <activity
+            android:name=".account.TeacherActivity"
+            android:exported="false" />
+        <activity
+            android:name=".account.StudentActivity"
+            android:exported="false" />
+        <activity
+            android:name=".UserAccountActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name=".imagepicker.MainActivity2"
+        <activity
+            android:name=".imagepicker.MainActivity2"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name=".real_time.MainActivity3"
+        <activity
+            android:name=".real_time.MainActivity3"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name=".imagepicker.RecognitionActivity"
+        <activity
+            android:name=".imagepicker.RecognitionActivity"
             android:exported="false" />
-
-        <activity android:name=".imagepicker.RegisterActivity"
+        <activity
+            android:name=".imagepicker.RegisterActivity"
             android:exported="false" />
-        <activity android:name=".imagepicker.RecognitionActivityMine"
+        <activity
+            android:name=".imagepicker.RecognitionActivityMine"
             android:exported="false" />
-
-        <activity android:name=".imagepicker.RegisterActivityMine"
+        <activity
+            android:name=".imagepicker.RegisterActivityMine"
             android:exported="false" />
+        <activity
+            android:name=".account.RegisterUserActivity"
+            android:exported="false" />
+        <activity
+            android:name=".account.LoginUserActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
-
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
-
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.CAMERA"/>
-
-
-
 
 </manifest>

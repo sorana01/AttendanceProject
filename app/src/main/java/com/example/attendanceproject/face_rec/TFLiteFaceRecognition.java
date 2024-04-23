@@ -1,5 +1,6 @@
 package com.example.attendanceproject.face_rec;
 
+import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
@@ -84,7 +85,7 @@ public class TFLiteFaceRecognition
         MainActivity2.registered.put(name, rec);
     }
 
-    public void registerDb(String name, Recognition rec, UserAccountActivity activity) {
+    public void registerDb(String name, Recognition rec, Context context) {
         registered.put(name, rec);
 
         byte[] bytes=null;
@@ -94,7 +95,7 @@ public class TFLiteFaceRecognition
                 Gson gson = new Gson();
 
 
-                File localFile = new File(activity.getFilesDir(), FileName);
+                File localFile = new File(context.getFilesDir(), FileName);
                 FileOutputStream fileOutputStream = new FileOutputStream(localFile);
 
                 Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
@@ -102,12 +103,13 @@ public class TFLiteFaceRecognition
 
                 ObjectOutputStream o = new ObjectOutputStream(fileOutputStream);
                 o.writeObject(toStoreObject);
+                Log.d("REGISTER", "Embedding name " + name + " has been registered");
 
                 o.close();
 
                 fileOutputStream.close();
 
-                Toast.makeText(activity.getApplicationContext(), "save file completed.", Toast.LENGTH_LONG ).show();
+                Toast.makeText(context, "save file completed.", Toast.LENGTH_LONG ).show();
 
             }
 
@@ -115,14 +117,14 @@ public class TFLiteFaceRecognition
             StorageReference storageRef = storage.getReference();
             StorageReference test2 = storageRef.child(FileName);
 
-            Uri file = Uri.fromFile(new File(activity.getFilesDir(),FileName));
+            Uri file = Uri.fromFile(new File(context.getFilesDir(),FileName));
 
 
             test2.putFile(file)
                     .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                            Toast.makeText(activity.getApplicationContext(), "Upload Completed.", Toast.LENGTH_LONG ).show();
+                            Toast.makeText(context, "Upload Completed.", Toast.LENGTH_LONG ).show();
 
                         }
                     })
@@ -131,7 +133,7 @@ public class TFLiteFaceRecognition
                         public void onFailure(@NonNull Exception exception) {
                             // Handle unsuccessful uploads
                             // ...
-                            Toast.makeText(activity.getApplicationContext(), "Upload Failure.", Toast.LENGTH_LONG ).show();
+                            Toast.makeText(context, "Upload Failure.", Toast.LENGTH_LONG ).show();
                         }
                     });
 
@@ -140,7 +142,7 @@ public class TFLiteFaceRecognition
 
 
             Log.d("Clique AQUI","Clique AQUI file created: " + e.toString());
-            Toast.makeText(activity.getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG ).show();
+            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG ).show();
 
         }
     }
@@ -148,6 +150,7 @@ public class TFLiteFaceRecognition
     public void registerMul(String name, Recognition rec) {
         if (MainActivity2.registered.containsKey(name)) {
             Recognition existingRec = MainActivity2.registered.get(name);
+            // this part feels redundant - we already have a list from last else
             List<float[]> embeddings;
             if (existingRec.getEmbedding() instanceof List) {
                 embeddings = (List<float[]>) existingRec.getEmbedding();
@@ -225,7 +228,7 @@ public class TFLiteFaceRecognition
             final String modelFilename,
             final int inputSize,
             final boolean isQuantized,
-            UserAccountActivity activity)
+            Context context)
             throws IOException {
 
         final TFLiteFaceRecognition d = new TFLiteFaceRecognition();
@@ -239,31 +242,37 @@ public class TFLiteFaceRecognition
             test2.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
                 @Override
                 public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
-
                     try {
-
                         Gson gson = new Gson();
                         ObjectInputStream i = new ObjectInputStream(new FileInputStream(localFile));
 
                         Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
                         HashMap<String, Recognition> registeredDb = gson.fromJson((String)i.readObject(), type);
-
-                        if (registeredDb != null){
-                            d.registered = registeredDb;
-                        }
                         i.close();
 
-                        Toast.makeText(activity.getApplicationContext(), "Content embeddings read", Toast.LENGTH_LONG ).show();
+                        // Check if the map is not empty
+                        if (registeredDb != null && !registeredDb.isEmpty()){
+                            d.registered = registeredDb;
+                            // Logging each key-value pair
+                            for (Map.Entry<String, Recognition> entry : registeredDb.entrySet()) {
+                                Log.d("REGISTERED_DB", "Key: " + entry.getKey() + ", Value: " + entry.getValue().toString());
+                            }
+                        } else {
+                            Log.d("REGISTERED_DB", "The registered database is empty or null.");
+                        }
+
+                        Toast.makeText(context, "Content embeddings read", Toast.LENGTH_LONG ).show();
 
                     } catch (Exception e) {
-                        Toast.makeText(activity.getApplicationContext(), "Exception 1" + e.getMessage(), Toast.LENGTH_LONG ).show();
+                        Log.d("REGISTERED_DB_EXCEPTION", "Exception when reading and processing file: " + e.toString());
+                        Toast.makeText(context, "Exception 1" + e.getMessage(), Toast.LENGTH_LONG ).show();
                     }
                 }
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception exception) {
-                    Log.d("Clique AQUI", "Clique Aqui erro " + exception.toString());
-                    Toast.makeText(activity.getApplicationContext(), "Exception 2 " + exception.getMessage(), Toast.LENGTH_LONG ).show();
+                    Log.d("DOWNLOAD_FAILURE", "Error downloading file: " + exception.toString());
+                    Toast.makeText(context, "Exception 2 " + exception.getMessage(), Toast.LENGTH_LONG ).show();
                 }
             });
 

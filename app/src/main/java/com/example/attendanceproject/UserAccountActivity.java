@@ -1,7 +1,9 @@
 package com.example.attendanceproject;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -27,6 +29,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.attendanceproject.face_rec.FaceClassifier;
@@ -106,14 +109,14 @@ public class UserAccountActivity extends AppCompatActivity {
         userImageView = findViewById(R.id.userImage);
         buttonSavePhoto = findViewById(R.id.buttonSavePhoto);
         buttonChoosePhoto = findViewById(R.id.buttonChoosePhoto);
-        buttonRecognize = findViewById(R.id.buttonRecognize);
+//        buttonRecognize = findViewById(R.id.buttonRecognize);
 
-        buttonRecognize.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                getContent.launch("image/*");
-            }
-        });
+//        buttonRecognize.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                getContent.launch("image/*");
+//            }
+//        });
 
         buttonChoosePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -126,26 +129,53 @@ public class UserAccountActivity extends AppCompatActivity {
         buttonSavePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Disable the Save button immediately to prevent multiple uploads
-                buttonSavePhoto.setEnabled(false);
-                faceClassifier.registerDb(user.getDisplayName(), recognition, UserAccountActivity.this);
+                // Create an AlertDialog to confirm the save action
+                new AlertDialog.Builder(UserAccountActivity.this)
+                        .setTitle("Confirm Save")
+                        .setMessage("Are you sure you want to save this photo?")
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // User clicked Yes, proceed with saving
+                                faceClassifier.registerDb(user.getDisplayName(), recognition, UserAccountActivity.this);
 
+                                // Save image to storage and then to Firestore
+                                uploadImageToFirebaseStorage();
+//                                finish();
+                            }
+                        })
+                        .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // User clicked No, just clear the view without saving
+                            }
+                        })
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialog) {
+                                // Common actions for both Yes and No responses
 
-                // Clear the imageUri and update the ImageView
-                imageUri = null;
-                input = null;
-                userImageView.setImageBitmap(input);
-                buttonChoosePhoto.setVisibility(View.VISIBLE);
-                buttonSavePhoto.setVisibility(View.GONE);
-                registerFace = false;
+                                // Clear the imageUri and update the ImageView
+                                imageUri = null;
+                                input = null;
+                                userImageView.setImageBitmap(input);
+                                buttonChoosePhoto.setVisibility(View.VISIBLE);
+                                buttonSavePhoto.setVisibility(View.GONE);
+                                registerFace = false;
+                            }
+                        })
+                        .show();
             }
         });
+
+
 
         user = FirebaseAuth.getInstance().getCurrentUser();
         detector = FaceDetection.getClient(highAccuracyOpts);
         try {
             // CHANGE MODEL
-            faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, UserAccountActivity.this);
+            faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, this);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -199,7 +229,7 @@ public class UserAccountActivity extends AppCompatActivity {
                 });
     }
 
-    private void uploadImageToFirebaseStorage(FaceClassifier.Recognition recognition) {
+    private void uploadImageToFirebaseStorage() {
         if (user != null && imageUri != null) {
             String fileName = "profileImages/" + System.currentTimeMillis() + "." + getFileExtension(imageUri);
             StorageReference storageReference = storage.getReference();
@@ -213,14 +243,8 @@ public class UserAccountActivity extends AppCompatActivity {
             fileReference.putFile(imageUri, metadata)
                     .addOnSuccessListener(taskSnapshot -> fileReference.getDownloadUrl().addOnSuccessListener(uri -> {
                         String downloadUrl = uri.toString();
-                        saveImageDetailsToFirestore(downloadUrl, fileName, recognition);  // Save other details to Firestore as needed
+                        saveImageDetailsToFirestore(downloadUrl, fileName);  // Save other details to Firestore as needed
 
-                        // Clear the imageUri and update the ImageView
-                        imageUri = null;
-                        input = null;
-                        userImageView.setImageBitmap(input);
-                        buttonChoosePhoto.setVisibility(View.VISIBLE);
-                        buttonSavePhoto.setVisibility(View.GONE);
                     }))
                     .addOnFailureListener(e -> {
                         Toast.makeText(UserAccountActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -238,27 +262,33 @@ public class UserAccountActivity extends AppCompatActivity {
         return mime.getExtensionFromMimeType(cR.getType(uri));
     }
 
-    private void saveImageDetailsToFirestore(String imageUrl, String fileName, FaceClassifier.Recognition recognition) {
+    private void saveImageDetailsToFirestore(String imageUrl, String fileName) {
         if (user != null) {
-            DocumentReference userDocRef = firestore.collection("users").document(user.getUid());
+            DocumentReference df = firestore.collection("Users").document(user.getUid());
             Map<String, Object> imageData = new HashMap<>();
             imageData.put("imageUrl", imageUrl);
             imageData.put("fileName", fileName);
 
-            // Use the helper method to convert embeddings to a string
-            float[][] embeddings = (float[][]) recognition.getEmbedding();
-            imageData.put("embeddings", convertEmbeddingsToString(embeddings));
-
-            // Add to an array of images
-            userDocRef.update("images", FieldValue.arrayUnion(imageData))
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(UserAccountActivity.this, "Image details saved in Firestore", Toast.LENGTH_SHORT).show();
+            // Use update instead of set to keep other fields unchanged
+            df.update(imageData)
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Log.d("Firestore", "Document successfully updated!");
+                            setResult(Activity.RESULT_OK);  // Set the result as OK
+                            finish();  // Finish this activity only after successful Firestore update
+                        }
                     })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(UserAccountActivity.this, "Error saving image details", Toast.LENGTH_SHORT).show();
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.w("Firestore", "Error updating document", e);
+                            Toast.makeText(UserAccountActivity.this, "Failed to update Firestore. Please try again!", Toast.LENGTH_SHORT).show();
+                        }
                     });
         }
     }
+
 
 
     public void performFaceRecognition(Rect bound, Bitmap input) {
