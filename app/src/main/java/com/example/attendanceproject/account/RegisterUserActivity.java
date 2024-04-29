@@ -27,6 +27,7 @@ import java.util.Map;
 
 public class RegisterUserActivity extends AppCompatActivity {
     private EditText fullNameEditText, emailEditText, passwordEditText, confirmPasswordEditText, phoneEditText;
+    private EditText studentIdEditText, cnpEditText;
     private Button registerButton, goToLoginButton;
     private CheckBox teacherCheckBox, studentCheckBox;
 
@@ -51,6 +52,8 @@ public class RegisterUserActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.registerPassword);
         confirmPasswordEditText = findViewById(R.id.confirmPassword);
         phoneEditText = findViewById(R.id.registerPhone);
+        studentIdEditText = findViewById(R.id.registerStudentId);
+        cnpEditText = findViewById(R.id.registerCnp);
         registerButton = findViewById(R.id.registerBtn);
         goToLoginButton = findViewById(R.id.gotoLogin);
         teacherCheckBox = findViewById(R.id.isTeacher);
@@ -77,8 +80,11 @@ public class RegisterUserActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 valid = emptyField(fullNameEditText) && emptyField(emailEditText) && emptyField(passwordEditText) && emptyField(phoneEditText);
+                valid = valid && checkField();
+                Log.d("VALID", "Value of checkField() is: " + checkField());
+                Log.d("VALID", "Value of valid is: " + valid);
 
-                if (valid && (checkField())) {
+                if (valid) {
                     if (passwordEditText.getText().toString().equals(confirmPasswordEditText.getText().toString())) {
                         fAuth.createUserWithEmailAndPassword(emailEditText.getText().toString(), passwordEditText.getText().toString()).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
                             @Override
@@ -103,8 +109,14 @@ public class RegisterUserActivity extends AppCompatActivity {
                                     userInfo.put("FullName", fullNameEditText.getText().toString());
                                     userInfo.put("UserEmail", emailEditText.getText().toString());
                                     userInfo.put("PhoneNumber", phoneEditText.getText().toString());
-                                    userInfo.put("isTeacher", isTeacher);
-                                    userInfo.put("isStudent", isStudent);
+                                    if (teacherCheckBox.isChecked())
+                                        userInfo.put("isTeacher", isTeacher);
+                                    else {
+                                        userInfo.put("isStudent", isStudent);
+                                        userInfo.put("SSN", cnpEditText.getText().toString());
+                                        userInfo.put("StudentId", studentIdEditText.getText().toString());
+                                    }
+
                                     userInfo.put("isApproved", isApproved);
 
                                     // Save the user info to Firestore
@@ -154,11 +166,19 @@ public class RegisterUserActivity extends AppCompatActivity {
     public boolean checkField() {
         isTeacher = teacherCheckBox.isChecked();
         isStudent = studentCheckBox.isChecked();
+        // empty field
+//        boolean isCnp = !cnpEditText.getText().toString().isEmpty();
+//        boolean isStudentId = !studentIdEditText.getText().toString().isEmpty();
 
         if (!isStudent && !isTeacher) {
             Toast.makeText(RegisterUserActivity.this, "One of the roles must be checked!", Toast.LENGTH_SHORT).show();
             return false;
         }
+        // student role selected but cnp and studentId not filled in
+        if (isStudent && (!emptyField(cnpEditText) || !emptyField(studentIdEditText))) {
+            return false;
+        }
+
         return true;
     }
 
