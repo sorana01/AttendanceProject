@@ -1,94 +1,66 @@
 package com.example.attendanceproject.account.admin;
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
-import android.widget.Toast;
+import android.view.View;
+import android.view.Menu;
 
 import com.example.attendanceproject.R;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.navigation.NavigationView;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.AppBarConfiguration;
+import androidx.navigation.ui.NavigationUI;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.attendanceproject.databinding.ActivityAdminBinding;
 
 public class AdminActivity extends AppCompatActivity {
-    private FirebaseFirestore fStore;
-    private ListView usersListView;
-    private ArrayAdapter<String> adapter;
-    private List<String> userList = new ArrayList<>();
-    private Map<String, String> userMap = new HashMap<>();
+
+    private AppBarConfiguration mAppBarConfiguration;
+    private ActivityAdminBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_admin);
 
-        usersListView = findViewById(R.id.usersListView);
-        fStore = FirebaseFirestore.getInstance();
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, userList);
-        usersListView.setAdapter(adapter);
+        binding = ActivityAdminBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        loadUsers();
-
-        usersListView.setOnItemClickListener((parent, view, position, id) -> {
-            String selectedUser = adapter.getItem(position);
-            String userId = userMap.get(selectedUser);
-            showApprovalDialog(userId, selectedUser);
+        setSupportActionBar(binding.appBarAdmin.toolbar);
+        binding.appBarAdmin.fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
         });
+        DrawerLayout drawer = binding.drawerLayout;
+        NavigationView navigationView = binding.navView;
+        // Passing each menu ID as a set of Ids because each
+        // menu should be considered as top level destinations.
+        mAppBarConfiguration = new AppBarConfiguration.Builder(
+                R.id.nav_accept_acc, R.id.nav_courses, R.id.nav_teachers, R.id.nav_students)
+                .setOpenableLayout(drawer)
+                .build();
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_admin);
+        NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
+        NavigationUI.setupWithNavController(navigationView, navController);
     }
 
-    private void loadUsers() {
-        fStore.collection("Users").whereEqualTo("isApproved", "false")
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            String userDetail = document.getString("FullName") + " - ";
-                            userDetail += Boolean.TRUE.equals(document.getBoolean("isTeacher")) ? "Teacher" : "Student";
-                            userList.add(userDetail);
-                            userMap.put(userDetail, document.getId());
-                        }
-                        adapter.notifyDataSetChanged();
-                    } else {
-                        Toast.makeText(this, "Error loading users", Toast.LENGTH_SHORT).show();
-                    }
-                });
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.admin, menu);
+        return true;
     }
 
-    private void showApprovalDialog(String userId, String userDetail) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Approve User");
-        builder.setMessage("Do you want to approve " + userDetail + "?");
-
-        builder.setPositiveButton("Yes", (dialog, which) -> {
-            updateUserStatus(userId, "true");
-        });
-
-        builder.setNegativeButton("No", (dialog, which) -> {
-            updateUserStatus(userId, "forbidden");
-        });
-
-        builder.show();
-    }
-
-    private void updateUserStatus(String userId, String status) {
-        fStore.collection("Users").document(userId)
-                .update("isApproved", status)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "User status updated", Toast.LENGTH_SHORT).show();
-                    reloadUserList();  // Refresh list after update
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error updating user status", Toast.LENGTH_SHORT).show());
-    }
-
-    private void reloadUserList() {
-        userList.clear();
-        userMap.clear();
-        loadUsers();
+    @Override
+    public boolean onSupportNavigateUp() {
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_admin);
+        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
+                || super.onSupportNavigateUp();
     }
 }
