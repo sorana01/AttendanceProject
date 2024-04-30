@@ -4,4 +4,16 @@
     <string name="facebook_application_id" translatable="false">821261679837835</string>
     <string name="facebook_login_protocol_scheme" translatable="false">fb821261679837835</string>
     <string name="facebook_client_token">6fbc12c04c9cbad1457c205a047a36f2</string>
+    <string name="title_activity_admin">AdminActivity</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="menu_accept_acc">Accept Accounts</string>
+    <string name="menu_courses">Courses</string>
+    <string name="menu_teachers">Teachers</string>
+    <string name="menu_students">Students</string>
 </resources>
