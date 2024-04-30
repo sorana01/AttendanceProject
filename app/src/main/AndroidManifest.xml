@@ -44,7 +44,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".account.AdminActivity"
+            android:name=".account.admin.AdminActivity"
             android:exported="false" />
         <activity
             android:name=".account.TeacherActivity"

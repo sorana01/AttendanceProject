@@ -1,4 +1,4 @@
-package com.example.attendanceproject.account;
+package com.example.attendanceproject.account.admin;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
