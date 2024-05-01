@@ -92,10 +92,10 @@ public class LoginUserActivity extends AppCompatActivity{
                 }
                 finish();
             }
-            else if ((Objects.equals(documentSnapshot.getString("isApproved"), "false"))){
+            else if ((Objects.equals(documentSnapshot.getString("isApproved"), "pending"))){
                 Toast.makeText(LoginUserActivity.this, "Account not yet approved by admin", Toast.LENGTH_LONG).show();
             }
-            else if (Objects.equals(documentSnapshot.getString("isApproved"), "forbidden")) {
+            else if (Objects.equals(documentSnapshot.getString("isApproved"), "false")) {
                 Toast.makeText(LoginUserActivity.this, "Your account has been restricted. Please contact the admin.", Toast.LENGTH_LONG).show();
             }
         });

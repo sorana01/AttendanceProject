@@ -60,7 +60,7 @@ public class RegisterUserActivity extends AppCompatActivity {
         studentCheckBox = findViewById(R.id.isStudent);
         isTeacher = teacherCheckBox.isChecked();
         isStudent = studentCheckBox.isChecked();
-        isApproved = "false";
+        isApproved = "pending";
 
         // Listener to ensure mutual exclusivity
         teacherCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
