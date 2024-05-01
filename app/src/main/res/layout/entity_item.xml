@@ -11,18 +11,18 @@
         android:orientation="vertical">
 
         <TextView
-            android:id="@+id/class_textview"
+            android:id="@+id/entity_name_textview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Class Name"
+            android:text="Entity Name"
             android:textSize="20sp"
             android:textColor="@color/black" />
 
         <TextView
-            android:id="@+id/subject_textview"
+            android:id="@+id/entity_detail_textview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Subject Name"
+            android:text="Entity Detail"
             android:textSize="15sp"
             android:color="#878787" />
 

@@ -20,9 +20,9 @@ import java.util.ArrayList;
 public class AdminCourseActivity extends AppCompatActivity {
     private FloatingActionButton addBtn;
     private RecyclerView recyclerView;
-    private ClassAdapter classAdapter;
+    private EntityAdapter entityAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private ArrayList<ClassItem> classItems = new ArrayList<>();
+    private ArrayList<EntityItem> entityItems = new ArrayList<>();
     private EditText class_edt;
     private EditText subject_edt;
     private Button cancel_btn;
@@ -40,19 +40,19 @@ public class AdminCourseActivity extends AppCompatActivity {
         layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
 
-        classAdapter = new ClassAdapter(this, classItems);
-        recyclerView.setAdapter(classAdapter);
+        entityAdapter = new EntityAdapter(this, entityItems);
+        recyclerView.setAdapter(entityAdapter);
     }
 
     private void showDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View view = LayoutInflater.from(this).inflate(R.layout.class_dialog, null);
+        View view = LayoutInflater.from(this).inflate(R.layout.entity_dialog, null);
         builder.setView(view);
         AlertDialog dialog = builder.create();
         dialog.show();
 
-        class_edt = view.findViewById(R.id.class_edt);
-        subject_edt = view.findViewById(R.id.subject_edt);
+        class_edt = view.findViewById(R.id.entity_name_edt);
+        subject_edt = view.findViewById(R.id.entity_detail_edt);
         cancel_btn = view.findViewById(R.id.cancel_btn);
         add_btn = view.findViewById(R.id.add_btn);
 
@@ -66,7 +66,7 @@ public class AdminCourseActivity extends AppCompatActivity {
     private void addClass() {
         String className = class_edt.getText().toString();
         String subjectName = subject_edt.getText().toString();
-        classItems.add(new ClassItem(className, subjectName));
-        classAdapter.notifyDataSetChanged();
+        entityItems.add(new EntityItem(className, subjectName));
+        entityAdapter.notifyDataSetChanged();
     }
 }
