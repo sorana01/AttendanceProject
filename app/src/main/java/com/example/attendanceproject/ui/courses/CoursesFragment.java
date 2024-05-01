@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.R;
+import com.example.attendanceproject.account.admin.CourseDetailsBottomSheetFragment;
 import com.example.attendanceproject.account.admin.EntityAdapter;
 import com.example.attendanceproject.account.admin.EntityItem;
 import com.example.attendanceproject.databinding.FragmentCoursesBinding;
@@ -61,6 +62,7 @@ public class CoursesFragment extends Fragment {
         recyclerView.setLayoutManager(layoutManager);
 
         entityAdapter = new EntityAdapter(getActivity(), entityItems);
+        entityAdapter.setOnItemClickListener(this::onItemClicked);
         recyclerView.setAdapter(entityAdapter);
 
         FloatingActionButton fab = getActivity().findViewById(R.id.fab); // Access FAB from the Activity
@@ -72,6 +74,10 @@ public class CoursesFragment extends Fragment {
         }
 
         loadCoursesFromFirestore();
+    }
+
+    private void onItemClicked(EntityItem item) {
+        showCourseDetailsBottomSheet(item);
     }
 
     private void showAddCourseDialog() {
@@ -150,6 +156,17 @@ public class CoursesFragment extends Fragment {
                         Toast.makeText(getActivity(), "Failed to load courses.", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private void showCourseDetailsBottomSheet(EntityItem item) {
+        // You can pass data to your bottom sheet fragment via arguments if needed
+        Bundle bundle = new Bundle();
+        bundle.putString("courseName", item.getEntityName());
+        bundle.putString("courseDetail", item.getEntityDetail());
+
+        CourseDetailsBottomSheetFragment bottomSheet = CourseDetailsBottomSheetFragment.newInstance();
+        bottomSheet.setArguments(bundle); // Pass data
+        bottomSheet.show(getChildFragmentManager(), bottomSheet.getTag());
     }
 
     @Override

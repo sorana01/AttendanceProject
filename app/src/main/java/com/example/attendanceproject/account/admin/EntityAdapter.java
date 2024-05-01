@@ -4,6 +4,7 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,6 +17,16 @@ import java.util.ArrayList;
 public class EntityAdapter extends RecyclerView.Adapter<EntityAdapter.EntityViewHolder> {
     private ArrayList<EntityItem> entityItems;
     private Context context;
+    private OnItemClickListener listener;
+
+    // Interface for click events
+    public interface OnItemClickListener {
+        void onItemClick(EntityItem item);
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
 
     public EntityAdapter(Context context, ArrayList<EntityItem> entityItems) {
         this.entityItems = entityItems;
@@ -47,6 +58,13 @@ public class EntityAdapter extends RecyclerView.Adapter<EntityAdapter.EntityView
     public void onBindViewHolder(@NonNull EntityViewHolder holder, int position) {
         holder.entityName.setText(entityItems.get(position).getEntityName());
         holder.entityDetail.setText(entityItems.get(position).getEntityDetail());
+
+        EntityItem item = entityItems.get(position);
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(item);
+            }
+        });
     }
 
     @Override
