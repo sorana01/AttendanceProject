@@ -19,16 +19,19 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment {
     private RecyclerView recyclerView;
     private FirebaseFirestore fStore;
     private CheckableEntityAdapter checkableEntityAdapter;
-    private ArrayList<EntityItem> userList = new ArrayList<>();
+    private ArrayList<CheckableEntityItem> userList = new ArrayList<>();
     private LinearLayout toolbarLayout;
     private LinearLayout optionsLayout;
-    private LinearLayout contentArea;
+    private String currentRole = ""; // To track the current role being assigned
+
 
     public static CourseDetailsBottomSheetFragment newInstance() {
         return new CourseDetailsBottomSheetFragment();
@@ -67,7 +70,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
 
         view.findViewById(R.id.assignStudentsTV).setOnClickListener(v -> {
             // TODO: Implement selection logic or show another dialog to select teachers
-//            showRecyclerView(view, "isStudent");
+            currentRole = "student";
             loadUsers("isStudent");
             recyclerView.setVisibility(View.VISIBLE);
             optionsLayout.setVisibility(View.GONE);
@@ -76,7 +79,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
 
         view.findViewById(R.id.assignTeachersTV).setOnClickListener(v -> {
             // TODO: Implement selection logic or show another dialog to select students
-//            showRecyclerView(view, "isTeacher");
+            currentRole = "teacher";
             loadUsers("isTeacher");
             recyclerView.setVisibility(View.VISIBLE);
             optionsLayout.setVisibility(View.GONE);
@@ -101,7 +104,26 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
     }
 
     private void saveData() {
+        String courseName = getArguments().getString("courseName", "Unknown Course");
+        ArrayList<CheckableEntityItem> checkedItems = checkableEntityAdapter.getCheckedItems();
+        if (checkedItems.isEmpty()) {
+            Toast.makeText(getContext(), "No " + currentRole + "s selected", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        // Depending on the role, decide the collection name
+        String collectionPath = "Courses/" + courseName + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
+
+        for (CheckableEntityItem item : checkedItems) {
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("userName", item.getEntityName());
+            userMap.put("userEmail", item.getEntityDetail());
+
+            fStore.collection(collectionPath)
+                    .add(userMap)
+                    .addOnSuccessListener(documentReference -> Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show())
+                    .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show());
+        }
     }
 
     private void loadUsers(String isRole) {
@@ -114,9 +136,11 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
                             String userName = document.getString("FullName");
                             String userDetail = document.getString("UserEmail");
                             CheckableEntityItem item = new CheckableEntityItem(userName, userDetail);
+                            item.setChecked(false);  // Make sure to reset check state
                             userList.add(item);
                         }
                         checkableEntityAdapter.notifyDataSetChanged();
+                        checkableEntityAdapter.clearCheckedPositions(); // Clear checked positions after updating
                     } else {
                         Toast.makeText(getContext(), "Error loading users", Toast.LENGTH_SHORT).show();
                     }

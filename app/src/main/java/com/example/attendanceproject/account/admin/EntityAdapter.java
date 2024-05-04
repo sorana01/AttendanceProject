@@ -14,14 +14,11 @@ import com.example.attendanceproject.R;
 
 import java.util.ArrayList;
 
-public class EntityAdapter extends RecyclerView.Adapter<EntityAdapter.EntityViewHolder> {
-    protected ArrayList<EntityItem> entityItems;
+public class EntityAdapter<T extends EntityItem> extends RecyclerView.Adapter<EntityAdapter.EntityViewHolder> {
+    protected ArrayList<T> entityItems;
     private Context context;
     private OnItemClickListener listener;
 
-    public ArrayList<EntityItem> getEntityItems() {
-        return entityItems;
-    }
 
     // Interface for click events
     public interface OnItemClickListener {
@@ -32,7 +29,7 @@ public class EntityAdapter extends RecyclerView.Adapter<EntityAdapter.EntityView
         this.listener = listener;
     }
 
-    public EntityAdapter(Context context, ArrayList<EntityItem> entityItems) {
+    public EntityAdapter(Context context, ArrayList<T> entityItems) {
         this.entityItems = entityItems;
         this.context = context;
     }
@@ -60,10 +57,10 @@ public class EntityAdapter extends RecyclerView.Adapter<EntityAdapter.EntityView
 
     @Override
     public void onBindViewHolder(@NonNull EntityViewHolder holder, int position) {
+        T item = entityItems.get(position);
         holder.entityName.setText(entityItems.get(position).getEntityName());
         holder.entityDetail.setText(entityItems.get(position).getEntityDetail());
 
-        EntityItem item = entityItems.get(position);
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onItemClick(item);

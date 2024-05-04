@@ -8,9 +8,12 @@ import android.widget.CheckBox;
 import androidx.annotation.NonNull;
 import com.example.attendanceproject.R;
 import java.util.ArrayList;
+import java.util.HashSet;
 
-public class CheckableEntityAdapter extends EntityAdapter{
-    public CheckableEntityAdapter(Context context, ArrayList<EntityItem> entityItems) {
+public class CheckableEntityAdapter extends EntityAdapter<CheckableEntityItem>{
+    private HashSet<Integer> checkedPositions = new HashSet<>();
+
+    public CheckableEntityAdapter(Context context, ArrayList<CheckableEntityItem> entityItems) {
         super(context, entityItems);
     }
 
@@ -33,11 +36,35 @@ public class CheckableEntityAdapter extends EntityAdapter{
     @Override
     public void onBindViewHolder(@NonNull EntityViewHolder holder, int position) {
         super.onBindViewHolder(holder, position);
-        CheckableEntityItem item = (CheckableEntityItem) getEntityItems().get(position);
-        ((CheckableEntityViewHolder) holder).checkBox.setChecked(item.isChecked());
+        CheckableEntityItem item = entityItems.get(position);
+        CheckableEntityViewHolder checkableHolder = (CheckableEntityViewHolder) holder;
 
-        ((CheckableEntityViewHolder) holder).checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+        checkableHolder.checkBox.setChecked(item.isChecked());
+        checkableHolder.checkBox.setOnCheckedChangeListener(null);  // Detach the listener to prevent firing during initial setup
+
+        checkableHolder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             item.setChecked(isChecked);
+            if (isChecked) {
+                checkedPositions.add(position);
+            } else {
+                checkedPositions.remove(position);
+            }
         });
     }
+
+    // Method to retrieve a list of checked items
+    public ArrayList<CheckableEntityItem> getCheckedItems() {
+        ArrayList<CheckableEntityItem> checkedItems = new ArrayList<>();
+        for (int position : checkedPositions) {
+            if (position < entityItems.size()) {  // Check if position is valid
+                checkedItems.add(entityItems.get(position));
+            }
+        }
+        return checkedItems;
+    }
+
+    public void clearCheckedPositions() {
+        checkedPositions.clear();
+    }
+
 }
