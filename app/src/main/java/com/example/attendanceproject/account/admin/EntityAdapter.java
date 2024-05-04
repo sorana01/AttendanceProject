@@ -15,9 +15,13 @@ import com.example.attendanceproject.R;
 import java.util.ArrayList;
 
 public class EntityAdapter extends RecyclerView.Adapter<EntityAdapter.EntityViewHolder> {
-    private ArrayList<EntityItem> entityItems;
+    protected ArrayList<EntityItem> entityItems;
     private Context context;
     private OnItemClickListener listener;
+
+    public ArrayList<EntityItem> getEntityItems() {
+        return entityItems;
+    }
 
     // Interface for click events
     public interface OnItemClickListener {
