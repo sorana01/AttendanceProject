@@ -42,6 +42,8 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
     private String currentRole = ""; // To track the current role being assigned
     private String courseId = null; // Store the course ID for easier reference
     private String courseName, courseDetail;
+    private Task<?> currentLoadTask = null;  // Reference to track the latest async load task
+
 
 
 
@@ -82,7 +84,6 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
         recyclerView.setAdapter(checkableEntityAdapter);
 
         view.findViewById(R.id.assignStudentsTV).setOnClickListener(v -> {
-            // TODO: Implement selection logic or show another dialog to select teachers
             currentRole = "student";
             loadUnassignedUsers("isStudent");
             recyclerView.setVisibility(View.VISIBLE);
@@ -90,10 +91,25 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
             toolbarLayout.setVisibility(View.VISIBLE);
         });
 
+        view.findViewById(R.id.viewStudentsTV).setOnClickListener(v -> {
+            currentRole = "student";
+            loadCourseUsers("isStudent");
+            recyclerView.setVisibility(View.VISIBLE);
+            optionsLayout.setVisibility(View.GONE);
+            toolbarLayout.setVisibility(View.VISIBLE);
+        });
+
         view.findViewById(R.id.assignTeachersTV).setOnClickListener(v -> {
-            // TODO: Implement selection logic or show another dialog to select students
             currentRole = "teacher";
             loadUnassignedUsers("isTeacher");
+            recyclerView.setVisibility(View.VISIBLE);
+            optionsLayout.setVisibility(View.GONE);
+            toolbarLayout.setVisibility(View.VISIBLE);
+        });
+
+        view.findViewById(R.id.viewTeachersTV).setOnClickListener(v -> {
+            currentRole = "teacher";
+            loadCourseUsers("isTeacher");
             recyclerView.setVisibility(View.VISIBLE);
             optionsLayout.setVisibility(View.GONE);
             toolbarLayout.setVisibility(View.VISIBLE);
@@ -196,7 +212,6 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
     }
 
 
-
     private void loadUnassignedUsers(String isRole) {
         if (courseId == null) {
             Toast.makeText(getContext(), "Course not found", Toast.LENGTH_SHORT).show();
@@ -206,48 +221,47 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
         // Determine the correct subcollection path based on the role
         String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
 
+        // Clear the list and notify adapter
+        userList.clear();
+        checkableEntityAdapter.notifyDataSetChanged();
+
+        // Cancel any previous loading task
+        if (currentLoadTask != null && !currentLoadTask.isComplete()) {
+            currentLoadTask = null;
+        }
+
         // Fetch already assigned users synchronously first
-        fStore.collection(collectionPath)
+        currentLoadTask = fStore.collection(collectionPath)
                 .get()
                 .addOnCompleteListener(assignedTask -> {
                     if (assignedTask.isSuccessful()) {
-                        // Create a set to store the email addresses of already assigned users
                         Set<String> assignedEmails = new HashSet<>();
-                        // Create a list to store references to user documents
                         List<DocumentReference> userRefs = new ArrayList<>();
-                        // Loop through each document in the subcollection (`AssignedStudents` or `AssignedTeachers`)
                         for (QueryDocumentSnapshot document : assignedTask.getResult()) {
-                            // Retrieve the `DocumentReference` of the user document
                             DocumentReference userRef = document.getDocumentReference("userReference");
                             if (userRef != null) {
-                                // Add the reference to the list for later fetching
                                 userRefs.add(userRef);
                             }
                         }
 
-                        // Fetch all user documents pointed to by these references
                         if (!userRefs.isEmpty()) {
-                            // Create a list of tasks to fetch the user documents
                             List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
                             for (DocumentReference ref : userRefs) {
                                 tasks.add(ref.get());
                             }
 
-                            // Wait until all tasks are done
                             Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
-                                // Loop through the results and add the user email addresses to the set
                                 for (Object result : results) {
                                     DocumentSnapshot userSnapshot = (DocumentSnapshot) result;
                                     if (userSnapshot.exists()) {
                                         assignedEmails.add(userSnapshot.getString("UserEmail"));
                                     }
                                 }
-
-                                // Fetch all approved users of the given role, excluding already assigned ones
                                 fetchUnassignedUsers(isRole, assignedEmails);
+                            }).addOnFailureListener(e -> {
+                                Toast.makeText(getContext(), "Error loading assigned users", Toast.LENGTH_SHORT).show();
                             });
                         } else {
-                            // If there are no assigned users, fetch unassigned users directly
                             fetchUnassignedUsers(isRole, assignedEmails);
                         }
                     } else {
@@ -257,36 +271,81 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
     }
 
     private void fetchUnassignedUsers(String isRole, Set<String> assignedEmails) {
-        // Query the `Users` collection for users with the specific role and approved status
-        fStore.collection("Users")
+        currentLoadTask = fStore.collection("Users")
                 .whereEqualTo("isApproved", "true")
                 .whereEqualTo(isRole, true)
                 .get()
                 .addOnCompleteListener(usersTask -> {
                     if (usersTask.isSuccessful()) {
-                        // Clear the current `userList`
                         userList.clear();
-                        // Loop through each document in the `Users` collection query results
                         for (QueryDocumentSnapshot document : usersTask.getResult()) {
-                            // Extract the user's name and email address
                             String userName = document.getString("FullName");
                             String userDetail = document.getString("UserEmail");
 
-                            // Add only users who are not already assigned (i.e., not in `assignedEmails`)
                             if (!assignedEmails.contains(userDetail)) {
-                                // Create a `CheckableEntityItem` and add it to the list
                                 CheckableEntityItem item = new CheckableEntityItem(userName, userDetail);
-                                item.setChecked(false); // Reset check state
+                                item.setChecked(false);
                                 userList.add(item);
                             }
                         }
-                        // Notify the adapter that the data set has changed
                         checkableEntityAdapter.notifyDataSetChanged();
-                        checkableEntityAdapter.clearCheckedPositions(); // Clear checked positions after updating
+                        checkableEntityAdapter.clearCheckedPositions();
                     } else {
                         Toast.makeText(getContext(), "Error loading users", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
+
+
+    private void loadCourseUsers(String role) {
+        if (courseId == null) {
+            Toast.makeText(getContext(), "Course not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
+
+        // Clear user list and notify adapter first
+        userList.clear();
+        checkableEntityAdapter.notifyDataSetChanged();
+
+        // Cancel any previous loading task
+        if (currentLoadTask != null && !currentLoadTask.isComplete()) {
+            currentLoadTask = null;
+        }
+
+        // Fetch user references asynchronously
+        currentLoadTask = fStore.collection(collectionPath)
+                .get()
+                .addOnCompleteListener(assignedTask -> {
+                    if (assignedTask.isSuccessful()) {
+                        List<Task<DocumentSnapshot>> userTasks = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : assignedTask.getResult()) {
+                            DocumentReference userRef = document.getDocumentReference("userReference");
+                            if (userRef != null) {
+                                userTasks.add(userRef.get());
+                            }
+                        }
+
+                        Tasks.whenAllSuccess(userTasks).addOnSuccessListener(results -> {
+                            for (Object result : results) {
+                                DocumentSnapshot userSnapshot = (DocumentSnapshot) result;
+                                if (userSnapshot.exists()) {
+                                    String userName = userSnapshot.getString("FullName");
+                                    String userEmail = userSnapshot.getString("UserEmail");
+                                    CheckableEntityItem item = new CheckableEntityItem(userName, userEmail);
+                                    userList.add(item);
+                                }
+                            }
+                            checkableEntityAdapter.notifyDataSetChanged();
+                        }).addOnFailureListener(e -> {
+                            Toast.makeText(getContext(), "Error loading assigned users", Toast.LENGTH_SHORT).show();
+                        });
+                    } else {
+                        Toast.makeText(getContext(), "Error loading assigned users", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
 
 }

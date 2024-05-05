@@ -72,6 +72,28 @@
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:src="@drawable/students_outline"/>
+
+            <TextView
+                android:id="@+id/viewStudentsTV"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="View Assigned Students"
+                android:layout_marginLeft="30dp"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp">
+
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:src="@drawable/teacher_outline"/>
 
             <TextView
@@ -81,6 +103,28 @@
                 android:text="Assign Teachers"
                 android:layout_marginLeft="30dp"
                 android:textSize="16sp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp">
+
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/teacher_outline"/>
+
+            <TextView
+                android:id="@+id/viewTeachersTV"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="View Assigned Teachers"
+                android:layout_marginLeft="30dp"
+                android:textSize="14sp"/>
 
         </LinearLayout>
 
