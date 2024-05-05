@@ -15,9 +15,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.R;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -142,17 +147,31 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
         String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
 
         for (CheckableEntityItem item : checkedItems) {
-            Map<String, Object> userMap = new HashMap<>();
-            userMap.put("userName", item.getEntityName());
-            userMap.put("userEmail", item.getEntityDetail());
+            fStore.collection("Users")
+                    .whereEqualTo("UserEmail", item.getEntityDetail())
+                    .get()
+                    .addOnSuccessListener(userSnapshot -> {
+                        if (!userSnapshot.isEmpty()) {
+                            QueryDocumentSnapshot userDoc = (QueryDocumentSnapshot) userSnapshot.getDocuments().get(0);
+                            DocumentReference userRef = userDoc.getReference();
 
-            fStore.collection(collectionPath)
-                    .add(userMap)
-                    .addOnSuccessListener(documentReference -> {
-                        Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
+                            Map<String, Object> assignmentData = new HashMap<>();
+                            assignmentData.put("userReference", userRef);
+
+                            fStore.collection(collectionPath)
+                                    .add(assignmentData)
+                                    .addOnSuccessListener(documentReference -> {
+                                        Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
+                                    });
+                        } else {
+                            Toast.makeText(getContext(), "User not found", Toast.LENGTH_SHORT).show();
+                        }
                     })
                     .addOnFailureListener(e -> {
-                        Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Error finding user: " + item.getEntityDetail(), Toast.LENGTH_SHORT).show();
                     });
         }
     }
@@ -166,44 +185,74 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
 
         String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
 
-        // Fetch already assigned users
+        // Fetch already assigned users synchronously first
         fStore.collection(collectionPath)
                 .get()
                 .addOnCompleteListener(assignedTask -> {
                     if (assignedTask.isSuccessful()) {
                         Set<String> assignedEmails = new HashSet<>();
+                        List<DocumentReference> userRefs = new ArrayList<>();
                         for (QueryDocumentSnapshot document : assignedTask.getResult()) {
-                            assignedEmails.add(document.getString("userEmail"));
+                            DocumentReference userRef = document.getDocumentReference("userReference");
+                            if (userRef != null) {
+                                userRefs.add(userRef);
+                            }
                         }
 
-                        // Fetch all approved users of the given role, excluding already assigned ones
-                        fStore.collection("Users")
-                                .whereEqualTo("isApproved", "true")
-                                .whereEqualTo(isRole, true)
-                                .get()
-                                .addOnCompleteListener(usersTask -> {
-                                    if (usersTask.isSuccessful()) {
-                                        userList.clear();
-                                        for (QueryDocumentSnapshot document : usersTask.getResult()) {
-                                            String userName = document.getString("FullName");
-                                            String userDetail = document.getString("UserEmail");
+                        // Fetch all user documents pointed to by these references
+                        if (!userRefs.isEmpty()) {
+                            List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
+                            for (DocumentReference ref : userRefs) {
+                                tasks.add(ref.get());
+                            }
 
-                                            // Add only if not already assigned
-                                            if (!assignedEmails.contains(userDetail)) {
-                                                CheckableEntityItem item = new CheckableEntityItem(userName, userDetail);
-                                                item.setChecked(false); // Reset check state
-                                                userList.add(item);
-                                            }
-                                        }
-                                        checkableEntityAdapter.notifyDataSetChanged();
-                                        checkableEntityAdapter.clearCheckedPositions(); // Clear checked positions after updating
-                                    } else {
-                                        Toast.makeText(getContext(), "Error loading users", Toast.LENGTH_SHORT).show();
+                            // Wait until all tasks are done
+                            Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+                                for (Object result : results) {
+                                    DocumentSnapshot userSnapshot = (DocumentSnapshot) result;
+                                    if (userSnapshot.exists()) {
+                                        assignedEmails.add(userSnapshot.getString("UserEmail"));
                                     }
-                                });
+                                }
+
+                                // Fetch all approved users of the given role, excluding already assigned ones
+                                fetchUnassignedUsers(isRole, assignedEmails);
+                            });
+                        } else {
+                            // If there are no assigned users, fetch unassigned users directly
+                            fetchUnassignedUsers(isRole, assignedEmails);
+                        }
                     } else {
                         Toast.makeText(getContext(), "Error loading assigned users", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
+
+    private void fetchUnassignedUsers(String isRole, Set<String> assignedEmails) {
+        fStore.collection("Users")
+                .whereEqualTo("isApproved", "true")
+                .whereEqualTo(isRole, true)
+                .get()
+                .addOnCompleteListener(usersTask -> {
+                    if (usersTask.isSuccessful()) {
+                        userList.clear();
+                        for (QueryDocumentSnapshot document : usersTask.getResult()) {
+                            String userName = document.getString("FullName");
+                            String userDetail = document.getString("UserEmail");
+
+                            // Add only if not already assigned
+                            if (!assignedEmails.contains(userDetail)) {
+                                CheckableEntityItem item = new CheckableEntityItem(userName, userDetail);
+                                item.setChecked(false); // Reset check state
+                                userList.add(item);
+                            }
+                        }
+                        checkableEntityAdapter.notifyDataSetChanged();
+                        checkableEntityAdapter.clearCheckedPositions(); // Clear checked positions after updating
+                    } else {
+                        Toast.makeText(getContext(), "Error loading users", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
 }
