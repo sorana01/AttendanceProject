@@ -47,17 +47,11 @@
             android:padding="8dp">
 
 
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/students_outline"/>
-
             <TextView
                 android:id="@+id/assignStudentsTV"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Assign Students"
-                android:layout_marginLeft="30dp"
                 android:textSize="16sp"/>
 
         </LinearLayout>
@@ -69,17 +63,11 @@
             android:padding="8dp">
 
 
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/students_outline"/>
-
             <TextView
                 android:id="@+id/viewStudentsTV"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="View Assigned Students"
-                android:layout_marginLeft="30dp"
                 android:textSize="14sp"/>
 
         </LinearLayout>
@@ -91,17 +79,11 @@
             android:padding="8dp">
 
 
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/teacher_outline"/>
-
             <TextView
                 android:id="@+id/assignTeachersTV"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Assign Teachers"
-                android:layout_marginLeft="30dp"
                 android:textSize="16sp"/>
 
         </LinearLayout>
@@ -113,17 +95,11 @@
             android:padding="8dp">
 
 
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/teacher_outline"/>
-
             <TextView
                 android:id="@+id/viewTeachersTV"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="View Assigned Teachers"
-                android:layout_marginLeft="30dp"
                 android:textSize="14sp"/>
 
         </LinearLayout>
