@@ -65,7 +65,7 @@ public class EntityAdapter<T extends EntityItem> extends RecyclerView.Adapter<En
     @Override
     public EntityViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         // Create a new view, which defines the UI of the list item
-        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.entity_item, parent, false);
+        View itemView = LayoutInflater.from(context).inflate(R.layout.entity_item, parent, false);
         return new EntityViewHolder(itemView);
     }
 

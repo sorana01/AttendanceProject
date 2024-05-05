@@ -1,6 +1,7 @@
 package com.example.attendanceproject.account.admin;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +28,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
     private RecyclerView recyclerView;
     private FirebaseFirestore fStore;
     private CheckableEntityAdapter checkableEntityAdapter;
+    // will be sent to the adapter
     private ArrayList<CheckableEntityItem> userList = new ArrayList<>();
     private LinearLayout toolbarLayout;
     private LinearLayout optionsLayout;
@@ -111,20 +113,39 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
             return;
         }
 
-        // Depending on the role, decide the collection name
-        String collectionPath = "Courses/" + courseName + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
+        // Query the Courses collection to get the document ID
+        fStore.collection("Courses")
+                .whereEqualTo("courseName", courseName)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        String courseId = queryDocumentSnapshots.getDocuments().get(0).getId();
+                        String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
 
-        for (CheckableEntityItem item : checkedItems) {
-            Map<String, Object> userMap = new HashMap<>();
-            userMap.put("userName", item.getEntityName());
-            userMap.put("userEmail", item.getEntityDetail());
+                        for (CheckableEntityItem item : checkedItems) {
+                            Map<String, Object> userMap = new HashMap<>();
+                            userMap.put("userName", item.getEntityName());
+                            userMap.put("userEmail", item.getEntityDetail());
 
-            fStore.collection(collectionPath)
-                    .add(userMap)
-                    .addOnSuccessListener(documentReference -> Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show())
-                    .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show());
-        }
+                            fStore.collection(collectionPath)
+                                    .add(userMap)
+                                    .addOnSuccessListener(documentReference -> {
+                                        Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
+                                    });
+                        }
+                    } else {
+                        Toast.makeText(getContext(), "Course not found", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.w("Firestore", "Error getting course", e);
+                    Toast.makeText(getContext(), "Error finding course", Toast.LENGTH_SHORT).show();
+                });
     }
+
 
     private void loadUsers(String isRole) {
         fStore.collection("Users").whereEqualTo("isApproved", "true").whereEqualTo(isRole, true)

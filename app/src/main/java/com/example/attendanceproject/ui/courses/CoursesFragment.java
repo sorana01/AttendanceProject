@@ -100,10 +100,10 @@ public class CoursesFragment extends Fragment {
         Button add_btn = view.findViewById(R.id.add_btn);
 
         cancel_btn.setOnClickListener(v -> dialog.dismiss());
+
         add_btn.setOnClickListener(v -> {
             String courseName = entity_name_edt.getText().toString().trim();
             String courseDetail = entity_detail_edt.getText().toString().trim();
-
             // Check if course name or detail is not empty
             if (!courseName.isEmpty() && !courseDetail.isEmpty()) {
                 EntityItem newItem = new EntityItem(courseName, courseDetail);
