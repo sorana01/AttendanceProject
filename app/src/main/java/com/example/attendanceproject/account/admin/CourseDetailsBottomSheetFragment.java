@@ -41,6 +41,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
     private LinearLayout optionsLayout;
     private String currentRole = ""; // To track the current role being assigned
     private String courseId = null; // Store the course ID for easier reference
+    private String courseName, courseDetail;
 
 
 
@@ -67,8 +68,8 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
         super.onViewCreated(view, savedInstanceState);
 
         if (getArguments() != null) {
-            String courseName = getArguments().getString("courseName");
-            String courseDetail = getArguments().getString("courseDetail");
+            courseName = getArguments().getString("courseName");
+            courseDetail = getArguments().getString("courseDetail");
             findCourseId(courseName);
             // Use courseName and courseDetail as needed
         }
@@ -155,16 +156,34 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
                             QueryDocumentSnapshot userDoc = (QueryDocumentSnapshot) userSnapshot.getDocuments().get(0);
                             DocumentReference userRef = userDoc.getReference();
 
-                            Map<String, Object> assignmentData = new HashMap<>();
-                            assignmentData.put("userReference", userRef);
+                            // Add user reference to course's subcollection
+                            Map<String, Object> userRefData = new HashMap<>();
+                            userRefData.put("userReference", userRef);
+                            userRefData.put("userName", item.getEntityName());  // Optional for quick view
+                            userRefData.put("userEmail", item.getEntityDetail());   //Optional for quick view
+
 
                             fStore.collection(collectionPath)
-                                    .add(assignmentData)
+                                    .add(userRefData)
                                     .addOnSuccessListener(documentReference -> {
                                         Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
                                     })
                                     .addOnFailureListener(e -> {
                                         Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
+                                    });
+
+                            // Add course reference to user's subcollection
+                            String userCourseSubPath = "CoursesEnrolled";
+                            DocumentReference courseRef = fStore.collection("Courses").document(courseId);
+                            Map<String, Object> courseRefData = new HashMap<>();
+                            courseRefData.put("courseReference", courseRef);
+                            courseRefData.put("courseName", courseName);  // Optional for quick view
+                            courseRefData.put("courseDetail", courseDetail);  // Optional for quick view
+
+                            userRef.collection(userCourseSubPath)
+                                    .add(courseRefData)
+                                    .addOnFailureListener(e -> {
+                                        Log.w("Firestore", "Error adding course reference to user", e);
                                     });
                         } else {
                             Toast.makeText(getContext(), "User not found", Toast.LENGTH_SHORT).show();
@@ -175,6 +194,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
                     });
         }
     }
+
 
 
     private void loadUnassignedUsers(String isRole) {
