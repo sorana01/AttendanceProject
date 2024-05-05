@@ -1,4 +1,4 @@
-package com.example.attendanceproject.ui.courses;
+package com.example.attendanceproject.account.admin;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -34,7 +34,7 @@ public class CoursesFragment extends Fragment {
     private FragmentCoursesBinding binding;
     private FirebaseFirestore fStore;
     private RecyclerView recyclerView;
-    private EntityAdapter entityAdapter;
+    private EntityAdapter<EntityItem> entityAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private ArrayList<EntityItem> entityItems = new ArrayList<>();
 

@@ -7,25 +7,25 @@
 
     <fragment
         android:id="@+id/nav_accept_acc"
-        android:name="com.example.attendanceproject.ui.accept_acc.AcceptAccFragment"
+        android:name="com.example.attendanceproject.account.admin.AcceptAccFragment"
         android:label="@string/menu_accept_acc"
         tools:layout="@layout/fragment_accept_acc" />
 
     <fragment
         android:id="@+id/nav_courses"
-        android:name="com.example.attendanceproject.ui.courses.CoursesFragment"
+        android:name="com.example.attendanceproject.account.admin.CoursesFragment"
         android:label="@string/menu_courses"
         tools:layout="@layout/fragment_courses" />
 
     <fragment
         android:id="@+id/nav_students"
-        android:name="com.example.attendanceproject.ui.students.StudentsFragment"
+        android:name="com.example.attendanceproject.account.admin.StudentsFragment"
         android:label="@string/menu_students"
         tools:layout="@layout/fragment_students" />
 
     <fragment
         android:id="@+id/nav_teachers"
-        android:name="com.example.attendanceproject.ui.teachers.TeachersFragment"
+        android:name="com.example.attendanceproject.account.admin.TeachersFragment"
         android:label="@string/menu_teachers"
         tools:layout="@layout/fragment_teachers" />
 </navigation>

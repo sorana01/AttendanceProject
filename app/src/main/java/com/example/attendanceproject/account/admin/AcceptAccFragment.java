@@ -1,4 +1,4 @@
-package com.example.attendanceproject.ui.accept_acc;
+package com.example.attendanceproject.account.admin;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;

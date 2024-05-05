@@ -53,10 +53,10 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".account.TeacherActivity"
+            android:name=".account.teacher.TeacherActivity"
             android:exported="false" />
         <activity
-            android:name=".account.StudentActivity"
+            android:name=".account.student.StudentActivity"
             android:exported="false" />
         <activity
             android:name=".UserAccountActivity"
