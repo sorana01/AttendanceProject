@@ -183,6 +183,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
             return;
         }
 
+        // Determine the correct subcollection path based on the role
         String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
 
         // Fetch already assigned users synchronously first
@@ -190,17 +191,23 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
                 .get()
                 .addOnCompleteListener(assignedTask -> {
                     if (assignedTask.isSuccessful()) {
+                        // Create a set to store the email addresses of already assigned users
                         Set<String> assignedEmails = new HashSet<>();
+                        // Create a list to store references to user documents
                         List<DocumentReference> userRefs = new ArrayList<>();
+                        // Loop through each document in the subcollection (`AssignedStudents` or `AssignedTeachers`)
                         for (QueryDocumentSnapshot document : assignedTask.getResult()) {
+                            // Retrieve the `DocumentReference` of the user document
                             DocumentReference userRef = document.getDocumentReference("userReference");
                             if (userRef != null) {
+                                // Add the reference to the list for later fetching
                                 userRefs.add(userRef);
                             }
                         }
 
                         // Fetch all user documents pointed to by these references
                         if (!userRefs.isEmpty()) {
+                            // Create a list of tasks to fetch the user documents
                             List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
                             for (DocumentReference ref : userRefs) {
                                 tasks.add(ref.get());
@@ -208,6 +215,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
 
                             // Wait until all tasks are done
                             Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+                                // Loop through the results and add the user email addresses to the set
                                 for (Object result : results) {
                                     DocumentSnapshot userSnapshot = (DocumentSnapshot) result;
                                     if (userSnapshot.exists()) {
@@ -229,24 +237,30 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
     }
 
     private void fetchUnassignedUsers(String isRole, Set<String> assignedEmails) {
+        // Query the `Users` collection for users with the specific role and approved status
         fStore.collection("Users")
                 .whereEqualTo("isApproved", "true")
                 .whereEqualTo(isRole, true)
                 .get()
                 .addOnCompleteListener(usersTask -> {
                     if (usersTask.isSuccessful()) {
+                        // Clear the current `userList`
                         userList.clear();
+                        // Loop through each document in the `Users` collection query results
                         for (QueryDocumentSnapshot document : usersTask.getResult()) {
+                            // Extract the user's name and email address
                             String userName = document.getString("FullName");
                             String userDetail = document.getString("UserEmail");
 
-                            // Add only if not already assigned
+                            // Add only users who are not already assigned (i.e., not in `assignedEmails`)
                             if (!assignedEmails.contains(userDetail)) {
+                                // Create a `CheckableEntityItem` and add it to the list
                                 CheckableEntityItem item = new CheckableEntityItem(userName, userDetail);
                                 item.setChecked(false); // Reset check state
                                 userList.add(item);
                             }
                         }
+                        // Notify the adapter that the data set has changed
                         checkableEntityAdapter.notifyDataSetChanged();
                         checkableEntityAdapter.clearCheckedPositions(); // Clear checked positions after updating
                     } else {
