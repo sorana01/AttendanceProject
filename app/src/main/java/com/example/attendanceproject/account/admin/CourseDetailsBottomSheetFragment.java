@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// TODO from save change to delete button for view options
+// TODO delete button will delete assigned user from course and course for assigned user
 public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment {
     private RecyclerView recyclerView;
     private FirebaseFirestore fStore;
@@ -122,7 +124,6 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
             recyclerView.setVisibility(View.GONE);
         });
 
-        // TODO from save change to delete button for view options
         Button saveButton = view.findViewById(R.id.saveButton);
         saveButton.setOnClickListener(v -> {
             saveData(); // Implement saving logic

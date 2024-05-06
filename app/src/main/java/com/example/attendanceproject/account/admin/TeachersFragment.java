@@ -4,31 +4,30 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.attendanceproject.R;
 import com.example.attendanceproject.databinding.FragmentStudentsBinding;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.List;
 
+// TODO abstract base class to extend for StudentsFragment and TeachersFragment
 public class TeachersFragment extends Fragment {
     private FragmentStudentsBinding binding;
     private FirebaseFirestore fStore;
     private RecyclerView recyclerView;
-    private EntityAdapter<EntityItem> entityAdapter;
+    private EntityAdapter<EntityItem> userAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private ArrayList<EntityItem> entityItems = new ArrayList<>();
+    private ArrayList<EntityItem> userItems = new ArrayList<>();
+    private ArrayList<String> userIds = new ArrayList<>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -52,13 +51,19 @@ public class TeachersFragment extends Fragment {
         layoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(layoutManager);
 
-        entityAdapter = new EntityAdapter(getActivity(), entityItems);
-        entityAdapter.setOnItemClickListener(this::onItemClicked);
-        recyclerView.setAdapter(entityAdapter);
+        userAdapter = new EntityAdapter(getActivity(), userItems);
+        userAdapter.setOnItemClickListener(this::onItemClicked);
+        recyclerView.setAdapter(userAdapter);
     }
 
     private void onItemClicked(EntityItem entityItem) {
-//        loadCoursesForUser();
+        int index = userItems.indexOf(entityItem);
+        if (index != -1) {
+            String userId = userIds.get(index);
+            Bundle bundle = new Bundle();
+            bundle.putString("userId", userId);
+            NavHostFragment.findNavController(this).navigate(R.id.action_studentsFragment_to_coursesForStudentsAndTeachersFragment, bundle);
+        }
     }
 
     private void loadUsersFromFirestore() {
@@ -66,13 +71,14 @@ public class TeachersFragment extends Fragment {
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        entityItems.clear(); // Clear the existing items
+                        userItems.clear(); // Clear the existing items
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             String userName = document.getString("FullName");
                             String userEmail = (String)document.get("UserEmail");
-                            entityItems.add(new EntityItem(userName, userEmail));
+                            userItems.add(new EntityItem(userName, userEmail));
+                            userIds.add(document.getId());
                         }
-                        entityAdapter.notifyDataSetChanged();
+                        userAdapter.notifyDataSetChanged();
                     } else {
                         Toast.makeText(getContext(), "Error loading users", Toast.LENGTH_SHORT).show();
                     }

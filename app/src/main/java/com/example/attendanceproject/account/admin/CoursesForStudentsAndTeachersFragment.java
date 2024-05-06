@@ -12,15 +12,16 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.attendanceproject.databinding.FragmentCoursesForStudentsBinding;
+import com.example.attendanceproject.databinding.FragmentCoursesForStudentsAndTeachersBinding;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 
-public class CoursesForStudentsFragment extends Fragment {
-    private FragmentCoursesForStudentsBinding binding;
+// TODO delete button for each course from each user and from each user that course
+public class CoursesForStudentsAndTeachersFragment extends Fragment {
+    private FragmentCoursesForStudentsAndTeachersBinding binding;
     private FirebaseFirestore fStore;
     private RecyclerView recyclerView;
     private CheckableEntityAdapter courseAdapter;
@@ -39,7 +40,7 @@ public class CoursesForStudentsFragment extends Fragment {
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        binding = FragmentCoursesForStudentsBinding.inflate(inflater, container, false);
+        binding = FragmentCoursesForStudentsAndTeachersBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
 

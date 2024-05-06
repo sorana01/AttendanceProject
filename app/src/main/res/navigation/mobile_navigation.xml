@@ -23,19 +23,23 @@
         android:label="@string/menu_students"
         tools:layout="@layout/fragment_students" >
         <action
-            android:id="@+id/action_studentsFragment_to_coursesForStudentsFragment"
-            app:destination="@id/coursesForStudentsFragment"/>
+            android:id="@+id/action_studentsFragment_to_coursesForStudentsAndTeachersFragment"
+            app:destination="@id/coursesForStudentsAndTeachersFragment"/>
     </fragment>
 
     <fragment
-        android:id="@+id/coursesForStudentsFragment"
-        android:name="com.example.attendanceproject.account.admin.CoursesForStudentsFragment"
+        android:id="@+id/coursesForStudentsAndTeachersFragment"
+        android:name="com.example.attendanceproject.account.admin.CoursesForStudentsAndTeachersFragment"
         android:label="Courses"
-        tools:layout="@layout/fragment_courses_for_students"/>
+        tools:layout="@layout/fragment_courses_for_students_and_teachers"/>
 
     <fragment
         android:id="@+id/nav_teachers"
         android:name="com.example.attendanceproject.account.admin.TeachersFragment"
         android:label="@string/menu_teachers"
-        tools:layout="@layout/fragment_teachers" />
+        tools:layout="@layout/fragment_teachers" >
+        <action
+            android:id="@+id/action_studentsFragment_to_coursesForStudentsAndTeachersFragment"
+            app:destination="@id/coursesForStudentsAndTeachersFragment"/>
+    </fragment>
 </navigation>

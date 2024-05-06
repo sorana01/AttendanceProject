@@ -61,7 +61,7 @@ public class StudentsFragment extends Fragment {
             String userId = userIds.get(index);
             Bundle bundle = new Bundle();
             bundle.putString("userId", userId);
-            NavHostFragment.findNavController(this).navigate(R.id.action_studentsFragment_to_coursesForStudentsFragment, bundle);
+            NavHostFragment.findNavController(this).navigate(R.id.action_studentsFragment_to_coursesForStudentsAndTeachersFragment, bundle);
         }
     }
 
