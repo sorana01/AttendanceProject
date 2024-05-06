@@ -67,7 +67,7 @@
                 android:id="@+id/viewStudentsTV"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="View Assigned Students"
+                android:text="View And/Or Delete Assigned Students"
                 android:textSize="14sp"/>
 
         </LinearLayout>
@@ -99,7 +99,7 @@
                 android:id="@+id/viewTeachersTV"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="View Assigned Teachers"
+                android:text="View And/Or Delete Assigned Teachers"
                 android:textSize="14sp"/>
 
         </LinearLayout>

@@ -122,6 +122,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
             recyclerView.setVisibility(View.GONE);
         });
 
+        // TODO from save change to delete button for view options
         Button saveButton = view.findViewById(R.id.saveButton);
         saveButton.setOnClickListener(v -> {
             saveData(); // Implement saving logic
