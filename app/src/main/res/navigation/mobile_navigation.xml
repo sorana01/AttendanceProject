@@ -21,7 +21,17 @@
         android:id="@+id/nav_students"
         android:name="com.example.attendanceproject.account.admin.StudentsFragment"
         android:label="@string/menu_students"
-        tools:layout="@layout/fragment_students" />
+        tools:layout="@layout/fragment_students" >
+        <action
+            android:id="@+id/action_studentsFragment_to_coursesForStudentsFragment"
+            app:destination="@id/coursesForStudentsFragment"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/coursesForStudentsFragment"
+        android:name="com.example.attendanceproject.account.admin.CoursesForStudentsFragment"
+        android:label="Courses"
+        tools:layout="@layout/fragment_courses_for_students"/>
 
     <fragment
         android:id="@+id/nav_teachers"
