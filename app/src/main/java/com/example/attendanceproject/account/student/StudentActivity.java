@@ -1,4 +1,4 @@
-package com.example.attendanceproject.account;
+package com.example.attendanceproject.account.student;
 
 import android.content.Intent;
 import android.os.Bundle;

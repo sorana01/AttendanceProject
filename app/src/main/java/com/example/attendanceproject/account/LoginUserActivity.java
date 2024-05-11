@@ -11,6 +11,9 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.example.attendanceproject.R;
+import com.example.attendanceproject.account.admin.AdminActivity;
+import com.example.attendanceproject.account.student.StudentActivity;
+import com.example.attendanceproject.account.teacher.TeacherActivity;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.AuthResult;
@@ -91,10 +94,10 @@ public class LoginUserActivity extends AppCompatActivity{
                 }
                 finish();
             }
-            else if ((Objects.equals(documentSnapshot.getString("isApproved"), "false"))){
+            else if ((Objects.equals(documentSnapshot.getString("isApproved"), "pending"))){
                 Toast.makeText(LoginUserActivity.this, "Account not yet approved by admin", Toast.LENGTH_LONG).show();
             }
-            else if (Objects.equals(documentSnapshot.getString("isApproved"), "forbidden")) {
+            else if (Objects.equals(documentSnapshot.getString("isApproved"), "false")) {
                 Toast.makeText(LoginUserActivity.this, "Your account has been restricted. Please contact the admin.", Toast.LENGTH_LONG).show();
             }
         });

@@ -21,7 +21,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AttendanceProject"
         tools:targetApi="31">
-
+        <activity
+            android:name=".account.admin.AdminActivity"
+            android:exported="true"
+            android:label="@string/title_activity_admin"
+            android:theme="@style/Theme.AttendanceProject.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <!-- Facebook SDK Meta-data -->
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
@@ -44,13 +53,10 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".account.AdminActivity"
+            android:name=".account.teacher.TeacherActivity"
             android:exported="false" />
         <activity
-            android:name=".account.TeacherActivity"
-            android:exported="false" />
-        <activity
-            android:name=".account.StudentActivity"
+            android:name=".account.student.StudentActivity"
             android:exported="false" />
         <activity
             android:name=".UserAccountActivity"

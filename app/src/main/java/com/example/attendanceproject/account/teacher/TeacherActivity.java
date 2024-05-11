@@ -1,4 +1,4 @@
-package com.example.attendanceproject.account;
+package com.example.attendanceproject.account.teacher;
 
 import android.annotation.SuppressLint;
 import android.database.Cursor;
@@ -26,7 +26,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.attendanceproject.R;
-import com.example.attendanceproject.UserAccountActivity;
 import com.example.attendanceproject.face_rec.FaceClassifier;
 import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
 import com.google.firebase.auth.FirebaseAuth;

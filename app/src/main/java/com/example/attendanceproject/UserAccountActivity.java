@@ -96,6 +96,7 @@ public class UserAccountActivity extends AppCompatActivity {
                         input = rotateBitmap(input);
                         userImageView.setImageBitmap(input);
 
+                        // save button becomes visible if only one face detected in photo
                         detectSingleFace(input);
                     }
                 }
@@ -199,7 +200,7 @@ public class UserAccountActivity extends AppCompatActivity {
                         if (registerFace) {
                             if (faces.size() == 1) {
 //                                Face face = faces.get(0);
-                                // Compute the embeddings
+                                // Compute the embeddings, put into recognition
                                 performFaceRecognition(face.getBoundingBox(), bitmap);
                                 // Exactly one face detected, allow user to save the image
                                 buttonChoosePhoto.setVisibility(View.GONE);
