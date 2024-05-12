@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.attendanceproject.R;
 import com.example.attendanceproject.account.adapters.EntityAdapter;
 import com.example.attendanceproject.account.adapters.EntityItem;
+import com.example.attendanceproject.account.admin.CourseAdminBottomSheetFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -42,10 +43,27 @@ public class TeacherActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
 
         courseAdapter = new EntityAdapter(this, courseItems);
+        courseAdapter.setOnItemClickListener(this::onItemClicked);
         recyclerView.setAdapter(courseAdapter);
 
         loadCoursesForUser();
     }
+
+    private void onItemClicked(EntityItem item) {
+        showCourseDetailsBottomSheet(item);
+    }
+
+    private void showCourseDetailsBottomSheet(EntityItem item) {
+        // You can pass data to your bottom sheet fragment via arguments if needed
+        Bundle bundle = new Bundle();
+        bundle.putString("courseName", item.getEntityName());
+        bundle.putString("courseDetail", item.getEntityDetail());
+
+        CourseTeacherBottomSheetFragment bottomSheet = CourseTeacherBottomSheetFragment.newInstance();
+        bottomSheet.setArguments(bundle); // Pass data
+        bottomSheet.show(getSupportFragmentManager(), bottomSheet.getTag());
+    }
+
 
     private void loadCoursesForUser() {
         DocumentReference userDocRef = fStore.collection("Users").document(user.getUid());
