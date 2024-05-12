@@ -1,4 +1,4 @@
-package com.example.attendanceproject.account.admin;
+package com.example.attendanceproject.account.adapters;
 
 public class EntityItem {
     private String entityName;

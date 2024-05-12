@@ -17,9 +17,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.R;
-import com.example.attendanceproject.account.admin.CourseDetailsBottomSheetFragment;
-import com.example.attendanceproject.account.admin.EntityAdapter;
-import com.example.attendanceproject.account.admin.EntityItem;
+import com.example.attendanceproject.account.adapters.EntityAdapter;
+import com.example.attendanceproject.account.adapters.EntityItem;
 import com.example.attendanceproject.databinding.FragmentCoursesBinding;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -164,7 +163,7 @@ public class CoursesFragment extends Fragment {
         bundle.putString("courseName", item.getEntityName());
         bundle.putString("courseDetail", item.getEntityDetail());
 
-        CourseDetailsBottomSheetFragment bottomSheet = CourseDetailsBottomSheetFragment.newInstance();
+        CourseAdminBottomSheetFragment bottomSheet = CourseAdminBottomSheetFragment.newInstance();
         bottomSheet.setArguments(bundle); // Pass data
         bottomSheet.show(getChildFragmentManager(), bottomSheet.getTag());
     }
