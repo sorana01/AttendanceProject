@@ -37,7 +37,7 @@
 
 
             <TextView
-                android:id="@+id/mark_att_manualTV"
+                android:id="@+id/mark_att_manual_TV"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Mark Attendance Manual"

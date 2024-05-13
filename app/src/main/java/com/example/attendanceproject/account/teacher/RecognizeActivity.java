@@ -24,10 +24,15 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.R;
+import com.example.attendanceproject.account.adapters.FaceAdapter;
+import com.example.attendanceproject.account.adapters.FaceItem;
 import com.example.attendanceproject.face_rec.FaceClassifier;
 import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
+import com.github.chrisbanes.photoview.PhotoView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -39,13 +44,20 @@ import com.google.mlkit.vision.face.FaceDetectorOptions;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RecognizeActivity extends AppCompatActivity {
-    private ImageView groupPhotoImageView;
+    private PhotoView groupPhotoImageView;
     private Button buttonRecognize;
     private Canvas canvas;
     private Uri imageUri;
     private Bitmap input;
+    private RecyclerView recyclerViewRecognizedFaces;
+    private FaceAdapter faceAdapter;
+    private List<FaceItem> faceItemList;
+
+    private String courseName, courseDetail;
 
     private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
     FaceDetectorOptions highAccuracyOpts =
@@ -85,9 +97,20 @@ public class RecognizeActivity extends AppCompatActivity {
 
         groupPhotoImageView = findViewById(R.id.groupPhotoImageView);
         buttonRecognize = findViewById(R.id.buttonRecognize);
+        recyclerViewRecognizedFaces = findViewById(R.id.recyclerViewRecognizedFaces);
+
+        faceItemList = new ArrayList<>();
+        faceAdapter = new FaceAdapter(this, faceItemList);
+        recyclerViewRecognizedFaces.setAdapter(faceAdapter);
+        recyclerViewRecognizedFaces.setLayoutManager(new LinearLayoutManager(this));
 
         user = FirebaseAuth.getInstance().getCurrentUser();
         detector = FaceDetection.getClient(highAccuracyOpts);
+
+        // Get data passed from fragment
+        courseName = getIntent().getStringExtra("courseName");
+        courseDetail = getIntent().getStringExtra("courseDetail");
+
         try {
             // CHANGE MODEL
             faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, this);
@@ -99,6 +122,7 @@ public class RecognizeActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 getContent.launch("image/*");
+                faceItemList.clear();
             }
         });
     }
@@ -151,21 +175,31 @@ public class RecognizeActivity extends AppCompatActivity {
         // Call upload method here with embedding data
 //        uploadImageToFirebaseStorage(recognition);
 
-        // excel attendance export
-
+        // TODO get the names
+        // TODO excel attendance export
         if (recognition != null) {
             Log.d("FaceRecognition", recognition.getTitle() + "   " + recognition.getDistance());
             Paint p1 = new Paint();
             p1.setColor(Color.WHITE);
             p1.setTextSize(35);
-            if (recognition.getDistance() < 1) {
-                canvas.drawText(recognition.getTitle(), bound.left, bound.top, p1);
-            } else {
-                canvas.drawText("Unknown", bound.left, bound.top, p1);
-            }
+//            if (recognition.getDistance() < 1) {
+//                canvas.drawText(recognition.getTitle(), bound.left, bound.top, p1);
+//            } else {
+//                canvas.drawText("Unknown", bound.left, bound.top, p1);
+//            }
+            String recognizedName = recognition.getDistance() < 1 ? recognition.getTitle() : "Unknown";
+            canvas.drawText(recognizedName, bound.left, bound.top, p1);
+            // Update RecyclerView with new recognized face
+            faceItemList.add(new FaceItem(croppedFace, recognizedName));
+            faceAdapter.notifyDataSetChanged();
         }
 
+        //faceItemList export
+
+
     }
+
+
 
     private Bitmap uriToBitmap(Uri selectedFileUri) {
         try {

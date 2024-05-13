@@ -1,5 +1,6 @@
 package com.example.attendanceproject.account.teacher;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +14,7 @@ import com.example.attendanceproject.account.admin.CourseAdminBottomSheetFragmen
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment {
+    private String courseName, courseDetail;
     public static CourseTeacherBottomSheetFragment newInstance() {
         return new CourseTeacherBottomSheetFragment();
     }
@@ -32,6 +34,30 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        
+        if (getArguments() != null) {
+            courseName = getArguments().getString("courseName");
+            courseDetail = getArguments().getString("courseDetail");
+        }
+
+        view.findViewById(R.id.mark_att_pic_TV).setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), RecognizeActivity.class);
+
+            // Optionally, you can add extra information to pass to RecognizeActivity
+            intent.putExtra("courseName", courseName);
+            intent.putExtra("courseDetail", courseDetail);
+
+            // Start the activity
+            startActivity(intent);
+        });
+
+        view.findViewById(R.id.mark_att_manual_TV).setOnClickListener(v -> {
+
+
+        });
+
+        view.findViewById(R.id.view_att_TV).setOnClickListener(v -> {
+
+
+        });
     }
 }
