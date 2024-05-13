@@ -5,9 +5,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.NumberPicker;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 
 import com.example.attendanceproject.R;
 import com.example.attendanceproject.account.admin.CourseAdminBottomSheetFragment;
@@ -39,16 +41,7 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
             courseDetail = getArguments().getString("courseDetail");
         }
 
-        view.findViewById(R.id.mark_att_pic_TV).setOnClickListener(v -> {
-            Intent intent = new Intent(getContext(), RecognizeActivity.class);
-
-            // Optionally, you can add extra information to pass to RecognizeActivity
-            intent.putExtra("courseName", courseName);
-            intent.putExtra("courseDetail", courseDetail);
-
-            // Start the activity
-            startActivity(intent);
-        });
+        view.findViewById(R.id.mark_att_pic_TV).setOnClickListener(v -> showWeekPickerDialog());
 
         view.findViewById(R.id.mark_att_manual_TV).setOnClickListener(v -> {
 
@@ -59,5 +52,33 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
 
 
         });
+    }
+
+    private void showWeekPickerDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Select Week");
+
+        // Inflate and set the layout for the dialog
+        // Pass null as the parent view because its going in the dialog layout
+        LayoutInflater inflater = requireActivity().getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.week_picker_dialog, null);
+        final NumberPicker numberPicker = dialogView.findViewById(R.id.week_picker);
+        numberPicker.setMinValue(1);
+        numberPicker.setMaxValue(14);
+        numberPicker.setWrapSelectorWheel(true);
+
+        builder.setView(dialogView)
+                .setPositiveButton("OK", (dialog, id) -> {
+                    int selectedWeek = numberPicker.getValue();
+                    Intent intent = new Intent(getContext(), RecognizeActivity.class);
+                    intent.putExtra("courseName", courseName);
+                    intent.putExtra("courseDetail", courseDetail);
+                    intent.putExtra("courseWeek", selectedWeek);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Cancel", (dialog, id) -> dialog.cancel());
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 }

@@ -63,6 +63,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
     private List<FaceItem> faceItemList;
 
     private String courseName, courseDetail;
+    private int courseWeek;
     private AttendanceManager attendanceManager;
     private List<String> originalNames;
 
@@ -121,6 +122,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         // Get data passed from fragment
         courseName = getIntent().getStringExtra("courseName");
         courseDetail = getIntent().getStringExtra("courseDetail");
+        courseWeek = getIntent().getIntExtra("courseWeek", 1);
         attendanceManager = new AttendanceManager(this);
         originalNames = new ArrayList<>();
 
