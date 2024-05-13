@@ -1,6 +1,7 @@
 package com.example.attendanceproject.account.teacher;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -15,14 +16,17 @@ import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -46,10 +50,11 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class RecognizeActivity extends AppCompatActivity {
+public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.OnEditTextChanged {
     private PhotoView groupPhotoImageView;
-    private Button buttonRecognize;
+    private Button buttonRecognize, buttonSave;
     private Canvas canvas;
     private Uri imageUri;
     private Bitmap input;
@@ -58,6 +63,9 @@ public class RecognizeActivity extends AppCompatActivity {
     private List<FaceItem> faceItemList;
 
     private String courseName, courseDetail;
+    private AttendanceManager attendanceManager;
+    private List<String> originalNames;
+
 
     private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
     FaceDetectorOptions highAccuracyOpts =
@@ -85,6 +93,8 @@ public class RecognizeActivity extends AppCompatActivity {
                         groupPhotoImageView.setImageBitmap(input);
 
                         detectSingleFace(input);
+                        buttonRecognize.setVisibility(View.GONE); // Hide the Recognize/Add photo button
+                        buttonSave.setVisibility(View.VISIBLE); // Show the Save button
                     }
                 }
             });
@@ -97,10 +107,11 @@ public class RecognizeActivity extends AppCompatActivity {
 
         groupPhotoImageView = findViewById(R.id.groupPhotoImageView);
         buttonRecognize = findViewById(R.id.buttonRecognize);
+        buttonSave = findViewById(R.id.buttonSave); // Initialize the Save button
         recyclerViewRecognizedFaces = findViewById(R.id.recyclerViewRecognizedFaces);
 
         faceItemList = new ArrayList<>();
-        faceAdapter = new FaceAdapter(this, faceItemList);
+        faceAdapter = new FaceAdapter(this, faceItemList, this);
         recyclerViewRecognizedFaces.setAdapter(faceAdapter);
         recyclerViewRecognizedFaces.setLayoutManager(new LinearLayoutManager(this));
 
@@ -110,6 +121,32 @@ public class RecognizeActivity extends AppCompatActivity {
         // Get data passed from fragment
         courseName = getIntent().getStringExtra("courseName");
         courseDetail = getIntent().getStringExtra("courseDetail");
+        attendanceManager = new AttendanceManager(this);
+        originalNames = new ArrayList<>();
+
+        // Set up onBackPressed handling with callback
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // Check if the current focus is on an EditText
+                View focusedView = getCurrentFocus();
+                if (focusedView instanceof EditText) {
+                    // Clear focus and potentially hide the keyboard
+                    focusedView.clearFocus();
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(focusedView.getWindowToken(), 0);
+
+                    // Make the Save button visible again
+                    buttonSave.setVisibility(View.VISIBLE);
+                } else {
+                    // If no EditText was focused, continue with the default back action
+                    setEnabled(false);
+                    onBackPressed();
+                }
+            }
+        };
+
+        getOnBackPressedDispatcher().addCallback(this, callback);
 
         try {
             // CHANGE MODEL
@@ -118,13 +155,48 @@ public class RecognizeActivity extends AppCompatActivity {
             throw new RuntimeException(e);
         }
 
-        buttonRecognize.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                getContent.launch("image/*");
-                faceItemList.clear();
-            }
+        buttonRecognize.setOnClickListener(view -> {
+            getContent.launch("image/*");
         });
+
+
+        buttonSave.setOnClickListener(view -> showSaveConfirmationDialog());
+    }
+
+    private void showSaveConfirmationDialog() {
+        StringBuilder namesBuilder = new StringBuilder();
+        for (FaceItem item : faceItemList) {
+            namesBuilder.append(item.getName()).append("\n");
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle("Confirm Save")
+                .setMessage("Do you want to save these names?\n" + namesBuilder.toString())
+                .setPositiveButton("Save", (dialog, which) -> {
+                    attendanceManager.saveRecognitionResults(courseName, faceItemList.stream().map(FaceItem::getName).collect(Collectors.toList()));
+                    Log.d("NAMES", "Saved names: " + namesBuilder.toString());
+                    buttonSave.setVisibility(View.GONE);
+                    buttonRecognize.setVisibility(View.VISIBLE);
+                    faceItemList.clear();
+                    originalNames.clear();
+                    faceAdapter.notifyDataSetChanged();
+                    groupPhotoImageView.setImageResource(R.drawable.poza_grup);
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    // Restore original names if user cancels the operation
+                    restoreOriginalNames();
+                });
+
+
+        builder.show();
+
+    }
+
+    private void restoreOriginalNames() {
+        for (int i = 0; i < faceItemList.size(); i++) {
+            faceItemList.get(i).setName(originalNames.get(i));
+        }
+        faceAdapter.notifyDataSetChanged();
     }
 
     private void detectSingleFace(Bitmap bitmap) {
@@ -134,17 +206,27 @@ public class RecognizeActivity extends AppCompatActivity {
         InputImage image = InputImage.fromBitmap(bitmap, 0);
         detector.process(image)
                 .addOnSuccessListener(faces -> {
-                    for (Face face : faces) {
-                        Rect bounds = face.getBoundingBox();
-                        Paint p1 = new Paint();
-                        p1.setColor(Color.RED);
-                        p1.setStyle(Paint.Style.STROKE);
-                        p1.setStrokeWidth(15);
+                    if (!faces.isEmpty()) {
+                        for (Face face : faces) {
+                            Rect bounds = face.getBoundingBox();
+                            Paint p1 = new Paint();
+                            p1.setColor(Color.RED);
+                            p1.setStyle(Paint.Style.STROKE);
+                            p1.setStrokeWidth(15);
 
-                        performFaceRecognition(bounds, bitmap);
-                        canvas.drawRect(bounds, p1);
+                            performFaceRecognition(bounds, bitmap);
+                            canvas.drawRect(bounds, p1);
+                        }
+                        groupPhotoImageView.setImageBitmap(mutableBmp);
+
+                        for (FaceItem face : faceItemList) {
+                            originalNames.add(face.getName());
+                        }
                     }
-                    groupPhotoImageView.setImageBitmap(mutableBmp);
+                    else {
+                        groupPhotoImageView.setImageBitmap(mutableBmp);
+                        Toast.makeText(this, "Picture contains no faces", Toast.LENGTH_SHORT).show();
+                    }
 
                 })
                 .addOnFailureListener(e -> {
@@ -182,20 +264,12 @@ public class RecognizeActivity extends AppCompatActivity {
             Paint p1 = new Paint();
             p1.setColor(Color.WHITE);
             p1.setTextSize(35);
-//            if (recognition.getDistance() < 1) {
-//                canvas.drawText(recognition.getTitle(), bound.left, bound.top, p1);
-//            } else {
-//                canvas.drawText("Unknown", bound.left, bound.top, p1);
-//            }
             String recognizedName = recognition.getDistance() < 1 ? recognition.getTitle() : "Unknown";
             canvas.drawText(recognizedName, bound.left, bound.top, p1);
             // Update RecyclerView with new recognized face
             faceItemList.add(new FaceItem(croppedFace, recognizedName));
             faceAdapter.notifyDataSetChanged();
         }
-
-        //faceItemList export
-
 
     }
 
@@ -230,5 +304,25 @@ public class RecognizeActivity extends AppCompatActivity {
         return cropped;
     }
 
+
+    @Override
+    public void onEditTextVisibilityChange(boolean shouldShowSave) {
+        if (shouldShowSave) {
+            buttonSave.setVisibility(View.VISIBLE);
+        } else {
+            buttonSave.setVisibility(View.GONE);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Check if any EditText has focus
+        if (getCurrentFocus() instanceof EditText) {
+            super.onBackPressed();
+            buttonSave.setVisibility(View.VISIBLE);
+        } else {
+            super.onBackPressed();
+        }
+    }
 
 }

@@ -3,6 +3,8 @@ package com.example.attendanceproject.account.adapters;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,12 +20,20 @@ import com.example.attendanceproject.R;
 import java.util.List;
 
 public class FaceAdapter extends RecyclerView.Adapter<FaceAdapter.FaceViewHolder> {
+    private Context context;
     private List<FaceItem> faceItemList;
     private LayoutInflater inflater;
+    private OnEditTextChanged listener; // Interface listener
 
-    public FaceAdapter(Context context, List<FaceItem> faceItemList) {
+    public interface OnEditTextChanged {
+        void onEditTextVisibilityChange(boolean shouldShowSave);
+    }
+
+    public FaceAdapter(Context context, List<FaceItem> faceItemList, OnEditTextChanged listener) {
+        this.context = context;
         this.inflater = LayoutInflater.from(context);
         this.faceItemList = faceItemList;
+        this.listener = listener;
     }
 
     public static class FaceViewHolder extends RecyclerView.ViewHolder {
@@ -48,52 +58,45 @@ public class FaceAdapter extends RecyclerView.Adapter<FaceAdapter.FaceViewHolder
     public void onBindViewHolder(@NonNull FaceViewHolder holder, int position) {
         FaceItem currentFace = faceItemList.get(position);
         holder.imgFace.setImageBitmap(currentFace.getFaceImage());
-        holder.etName.setText(currentFace.getName());
 
-        // Set the EditText editable only if the name is "Unknown"
-        if ("Unknown".equals(currentFace.getName())) {
-            holder.etName.setEnabled(true);
-            holder.etName.setFocusableInTouchMode(true);  // Enable editing and focusing
-        } else {
-            holder.etName.setEnabled(false);
-            holder.etName.setFocusable(false);
+        // Clear and reset text watcher
+        if (holder.etName.getTag() instanceof TextWatcher) {
+            holder.etName.removeTextChangedListener((TextWatcher) holder.etName.getTag());
         }
 
-        // Set OnFocusChangeListener to handle focus loss
-        holder.etName.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus && "Unknown".equals(currentFace.getName())) {
-                    // If focus is lost and the original name was "Unknown"
-                    final EditText editText = (EditText) v;
-                    String newName = editText.getText().toString();
+        holder.etName.setText(currentFace.getName());  // Reset the text to the current item
 
-                    // Confirmation dialog
-                    new AlertDialog.Builder(holder.itemView.getContext())
-                            .setTitle("Confirm Name")
-                            .setMessage("Do you want to save this name: " + newName + "?")
-                            .setPositiveButton("Save", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    // Save the new name
-                                    currentFace.setName(newName);
-                                    editText.setEnabled(false);
-                                    editText.setFocusable(false);
-                                }
-                            })
-                            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    // Revert the text to "Unknown"
-                                    editText.setText("Unknown");
-                                }
-                            })
-                            .show();
-                }
+        TextWatcher textWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Inform that Save button state might need to change
+                listener.onEditTextVisibilityChange(false);
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                // Update item with current text
+                faceItemList.get(holder.getAdapterPosition()).setName(editable.toString());
+            }
+        };
+
+        holder.etName.addTextChangedListener(textWatcher);
+        holder.etName.setTag(textWatcher);
+
+        holder.etName.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                listener.onEditTextVisibilityChange(true);
+                faceItemList.get(holder.getAdapterPosition()).setName(holder.etName.getText().toString());
             }
         });
     }
-    
+
+
+
 
     @Override
     public int getItemCount() {
