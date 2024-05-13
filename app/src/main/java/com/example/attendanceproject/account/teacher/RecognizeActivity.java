@@ -37,6 +37,7 @@ import com.example.attendanceproject.account.adapters.FaceItem;
 import com.example.attendanceproject.face_rec.FaceClassifier;
 import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
 import com.github.chrisbanes.photoview.PhotoView;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -49,7 +50,10 @@ import com.google.mlkit.vision.face.FaceDetectorOptions;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.OnEditTextChanged {
@@ -62,7 +66,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
     private FaceAdapter faceAdapter;
     private List<FaceItem> faceItemList;
 
-    private String courseName, courseDetail;
+    private String courseName, courseDetail, courseId;
     private int courseWeek;
     private AttendanceManager attendanceManager;
     private List<String> originalNames;
@@ -120,6 +124,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         detector = FaceDetection.getClient(highAccuracyOpts);
 
         // Get data passed from fragment
+        courseId = getIntent().getStringExtra("courseId");
         courseName = getIntent().getStringExtra("courseName");
         courseDetail = getIntent().getStringExtra("courseDetail");
         courseWeek = getIntent().getIntExtra("courseWeek", 1);
@@ -175,7 +180,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                 .setTitle("Confirm Save")
                 .setMessage("Do you want to save these names?\n" + namesBuilder.toString())
                 .setPositiveButton("Save", (dialog, which) -> {
-                    attendanceManager.saveRecognitionResults(courseName, faceItemList.stream().map(FaceItem::getName).collect(Collectors.toList()));
+                    saveAttendanceToFirestore();
                     Log.d("NAMES", "Saved names: " + namesBuilder.toString());
                     buttonSave.setVisibility(View.GONE);
                     buttonRecognize.setVisibility(View.VISIBLE);
@@ -192,6 +197,26 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
 
         builder.show();
 
+    }
+
+    private void saveAttendanceToFirestore() {
+        List<String> attendeeNames = faceItemList.stream()
+                .map(FaceItem::getName)
+                .collect(Collectors.toList());
+
+        Map<String, Object> attendanceRecord = new HashMap<>();
+        attendanceRecord.put("courseID", FirebaseFirestore.getInstance().document("Courses/" + courseId));
+        attendanceRecord.put("week", courseWeek);
+        attendanceRecord.put("date", new Timestamp(new Date()));
+        attendanceRecord.put("attendees", attendeeNames);
+
+        firestore.collection("AttendanceRecords")
+                .add(attendanceRecord)
+                .addOnSuccessListener(documentReference -> {
+                    Log.d("Firestore Attendance", "DocumentSnapshot written with ID: " + documentReference.getId());
+                    Log.d("Firestore Attendance", "Course id passed " + courseId);
+                })
+                .addOnFailureListener(e -> Log.w("Firestore", "Error adding document", e));
     }
 
     private void restoreOriginalNames() {

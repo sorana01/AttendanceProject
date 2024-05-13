@@ -129,7 +129,8 @@ public class CoursesFragment extends Fragment {
         fStore.collection("Courses")
                 .add(courseData)
                 .addOnSuccessListener(documentReference -> {
-                    Log.d("Firestore", "Course added with ID: " + documentReference.getId());
+                    String courseId = documentReference.getId(); // Get the generated document ID
+                    Log.d("Firestore", "Course added with ID: " + courseId);
                     Toast.makeText(getActivity(), "Course added successfully", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
@@ -162,6 +163,8 @@ public class CoursesFragment extends Fragment {
         Bundle bundle = new Bundle();
         bundle.putString("courseName", item.getEntityName());
         bundle.putString("courseDetail", item.getEntityDetail());
+        bundle.putString("courseId", item.getEntityId());  // Pass the course ID
+
 
         CourseAdminBottomSheetFragment bottomSheet = CourseAdminBottomSheetFragment.newInstance();
         bottomSheet.setArguments(bundle); // Pass data

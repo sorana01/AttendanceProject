@@ -2,6 +2,7 @@ package com.example.attendanceproject.account.teacher;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +17,7 @@ import com.example.attendanceproject.account.admin.CourseAdminBottomSheetFragmen
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment {
-    private String courseName, courseDetail;
+    private String courseName, courseDetail, courseId;
     public static CourseTeacherBottomSheetFragment newInstance() {
         return new CourseTeacherBottomSheetFragment();
     }
@@ -37,9 +38,11 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
         super.onViewCreated(view, savedInstanceState);
 
         if (getArguments() != null) {
+            courseId = getArguments().getString("courseId");
             courseName = getArguments().getString("courseName");
             courseDetail = getArguments().getString("courseDetail");
         }
+        Log.d("CourseTeacherBottomSheet", "Course id " + courseId);
 
         view.findViewById(R.id.mark_att_pic_TV).setOnClickListener(v -> showWeekPickerDialog());
 
@@ -71,6 +74,7 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
                 .setPositiveButton("OK", (dialog, id) -> {
                     int selectedWeek = numberPicker.getValue();
                     Intent intent = new Intent(getContext(), RecognizeActivity.class);
+                    intent.putExtra("courseId", courseId);
                     intent.putExtra("courseName", courseName);
                     intent.putExtra("courseDetail", courseDetail);
                     intent.putExtra("courseWeek", selectedWeek);

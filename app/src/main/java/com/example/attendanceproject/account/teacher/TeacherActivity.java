@@ -1,6 +1,7 @@
 package com.example.attendanceproject.account.teacher;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -56,6 +57,9 @@ public class TeacherActivity extends AppCompatActivity {
     private void showCourseDetailsBottomSheet(EntityItem item) {
         // You can pass data to your bottom sheet fragment via arguments if needed
         Bundle bundle = new Bundle();
+
+        bundle.putString("courseId", item.getEntityId());  // Pass the course ID
+        Log.d("TeacherActivity", "Course id " + item.getEntityId());
         bundle.putString("courseName", item.getEntityName());
         bundle.putString("courseDetail", item.getEntityDetail());
 
@@ -77,9 +81,10 @@ public class TeacherActivity extends AppCompatActivity {
                             if (courseRefPath != null) {
                                 courseRefPath.get()
                                         .addOnSuccessListener(courseDoc -> {
+                                            String courseId = courseDoc.getId();
                                             String courseName = courseDoc.getString("courseName");
                                             String courseDetail = courseDoc.getString("courseDetail");
-                                            courseItems.add(new EntityItem(courseName, courseDetail));
+                                            courseItems.add(new EntityItem(courseName, courseDetail, courseId));
                                             courseAdapter.notifyDataSetChanged();
                                         })
                                         .addOnFailureListener(e -> Toast.makeText(this, "Error loading course", Toast.LENGTH_SHORT).show());
