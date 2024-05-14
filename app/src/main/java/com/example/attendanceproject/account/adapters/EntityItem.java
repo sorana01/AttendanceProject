@@ -10,6 +10,10 @@ public class EntityItem {
         this.entityDetail = entityDetail;
     }
 
+    public EntityItem(String entityName) {
+        this.entityName = entityName;
+    }
+
     public EntityItem(String entityName, String entityDetail, String entityId) {
         this.entityName = entityName;
         this.entityDetail = entityDetail;
