@@ -15,7 +15,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import com.example.attendanceproject.R;
-import com.example.attendanceproject.account.admin.CourseAdminBottomSheetFragment;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -59,7 +58,7 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
 
         view.findViewById(R.id.mark_att_manual_TV).setOnClickListener(v -> showWeekPickerDialog(ManualAttendanceActivity.class));
 
-        view.findViewById(R.id.view_att_TV).setOnClickListener(v -> showWeekPickerDialog(ViewAttendanceActivity.class));
+        view.findViewById(R.id.view_att_TV).setOnClickListener(v -> showWeekPickerDialog(ViewAttendanceTeacherActivity.class));
     }
 
     private void showWeekPickerDialog(Class<? extends Activity> activityClass) {
@@ -95,13 +94,13 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
                     if (task.isSuccessful()) {
                         QuerySnapshot querySnapshot = task.getResult();
                         if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                            if (activityClass == ViewAttendanceActivity.class) {
+                            if (activityClass == ViewAttendanceTeacherActivity.class) {
                                 startAttendanceActivity(activityClass, selectedWeek);
                             }
                             else
                                 showAttendanceExistsDialog(activityClass, selectedWeek);
                         } else {
-                            if (activityClass == ViewAttendanceActivity.class) {
+                            if (activityClass == ViewAttendanceTeacherActivity.class) {
                                 Toast.makeText(getContext(), "Attendance for course " + courseName + " week " + selectedWeek + " doesn't exist", Toast.LENGTH_SHORT).show();
                             }
                             else

@@ -296,7 +296,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
     }
 
     private void launchViewAttendanceActivity() {
-        Intent intent = new Intent(this, ViewAttendanceActivity.class);
+        Intent intent = new Intent(this, ViewAttendanceTeacherActivity.class);
         intent.putExtra("courseId", courseId);
         intent.putExtra("courseName", courseName);
         intent.putExtra("courseDetail", courseDetail);

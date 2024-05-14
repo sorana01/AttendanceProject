@@ -14,7 +14,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ViewAttendanceActivity extends AppCompatActivity {
+public class ViewAttendanceTeacherActivity extends AppCompatActivity {
 
     private ListView listView;
     private ArrayAdapter<String> adapter;
@@ -23,7 +23,7 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_view_attendance);
+        setContentView(R.layout.activity_view_attendance_teacher);
 
         listView = findViewById(R.id.listView);
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, attendeesList);
@@ -56,9 +56,9 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                             }
                         }
                     } else {
-                        Toast.makeText(ViewAttendanceActivity.this, "No attendance records found for this week.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ViewAttendanceTeacherActivity.this, "No attendance records found for this week.", Toast.LENGTH_SHORT).show();
                     }
                 })
-                .addOnFailureListener(e -> Toast.makeText(ViewAttendanceActivity.this, "Failed to load attendance data.", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(ViewAttendanceTeacherActivity.this, "Failed to load attendance data.", Toast.LENGTH_SHORT).show());
     }
 }
