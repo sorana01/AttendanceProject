@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
@@ -84,6 +85,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
     private FaceClassifier faceClassifier;
     private FirebaseUser user;
     private FaceClassifier.Recognition recognition;
+    private ProgressBar progressBar;
 
 
     private ActivityResultLauncher<String> getContent = registerForActivityResult(
@@ -95,6 +97,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                     if (uris != null && !uris.isEmpty()) {
                         imageUris.clear();
                         imageUris.addAll(uris);
+                        progressBar.setVisibility(View.VISIBLE); // Show ProgressBar
                         processNextImage();
                     }
                 }
@@ -106,10 +109,9 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recognize);
 
-        groupPhotoImageView = findViewById(R.id.groupPhotoImageView);
-        buttonRecognize = findViewById(R.id.buttonRecognize);
         buttonSave = findViewById(R.id.buttonSave); // Initialize the Save button
         recyclerViewRecognizedFaces = findViewById(R.id.recyclerViewRecognizedFaces);
+        progressBar = findViewById(R.id.progressBar);
 
         faceItemList = new ArrayList<>();
         faceAdapter = new FaceAdapter(this, faceItemList, this);
@@ -157,9 +159,8 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
             throw new RuntimeException(e);
         }
 
-        buttonRecognize.setOnClickListener(view -> {
-            getContent.launch("image/*");
-        });
+        // Directly launch the gallery for selecting photos
+        getContent.launch("image/*");
 
 
         buttonSave.setOnClickListener(view -> showSaveConfirmationDialog());
@@ -175,26 +176,20 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                 .setTitle("Confirm Save")
                 .setMessage("Do you want to save these names?\n" + namesBuilder.toString())
                 .setPositiveButton("Save", (dialog, which) -> {
+                    progressBar.setVisibility(View.VISIBLE); // Show ProgressBar
                     saveAttendanceToFirestore();
                     Log.d("NAMES", "Saved names: " + namesBuilder.toString());
                     faceItemList.clear();
                     originalNames.clear();
                     faceAdapter.notifyDataSetChanged();
-                    if (!imageUris.isEmpty()) {
-                        processNextImage();
-                    } else {
-                        // All images processed, launch ViewAttendanceActivity
-                        launchViewAttendanceActivity();
-                    }
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> {
                     restoreOriginalNames();
                 });
 
-
         builder.show();
-
     }
+
 
     private void saveAttendanceToFirestore() {
         List<String> attendeeNames = faceItemList.stream()
@@ -217,6 +212,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                             document.getReference().update("attendees", existingAttendees)
                                     .addOnSuccessListener(aVoid -> {
                                         Log.d("Firestore Attendance", "DocumentSnapshot successfully updated with new attendees!");
+                                        progressBar.setVisibility(View.GONE);
                                     })
                                     .addOnFailureListener(e -> Log.w("Firestore", "Error updating document", e));
                         }
@@ -234,6 +230,8 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                                 .addOnSuccessListener(documentReference -> {
                                     Log.d("Firestore Attendance", "DocumentSnapshot written with ID: " + documentReference.getId());
                                     Log.d("Firestore Attendance", "Course id passed " + courseId);
+                                    progressBar.setVisibility(View.GONE);
+                                    launchViewAttendanceActivity(); // Open ViewAttendanceActivity after saving
                                 })
                                 .addOnFailureListener(e -> Log.w("Firestore", "Error adding document", e));
                     }
@@ -249,15 +247,13 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
     }
 
     private void launchViewAttendanceActivity() {
-        new android.os.Handler().postDelayed(() -> {
-            Intent intent = new Intent(this, ViewAttendanceActivity.class);
-            intent.putExtra("courseId", courseId);
-            intent.putExtra("courseName", courseName);
-            intent.putExtra("courseDetail", courseDetail);
-            intent.putExtra("courseWeek", courseWeek);
-            startActivity(intent);
-            finish(); // Finish the current activity
-        }, 2000); // Delay of 2 seconds (2000 milliseconds)
+        Intent intent = new Intent(this, ViewAttendanceActivity.class);
+        intent.putExtra("courseId", courseId);
+        intent.putExtra("courseName", courseName);
+        intent.putExtra("courseDetail", courseDetail);
+        intent.putExtra("courseWeek", courseWeek);
+        startActivity(intent);
+        finish();
     }
 
 
@@ -266,16 +262,12 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
             Uri nextUri = imageUris.remove(0);
             input = uriToBitmap(nextUri);
             input = rotateBitmap(input, nextUri);
-            groupPhotoImageView.setImageBitmap(input);
-            faceItemList.clear(); // Clear the list before detecting faces in the next image
-            originalNames.clear(); // Clear the original names list
             detectSingleFace(input);
-            buttonRecognize.setVisibility(View.GONE);
+        } else {
+            // All images processed, show the RecyclerView
+            recyclerViewRecognizedFaces.setVisibility(View.VISIBLE);
             buttonSave.setVisibility(View.VISIBLE);
-        }
-        else {
-            // No more images to process, launch ViewAttendanceActivity
-            launchViewAttendanceActivity();
+            progressBar.setVisibility(View.GONE);
         }
     }
 
@@ -298,26 +290,12 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                             performFaceRecognition(bounds, bitmap);
                             canvas.drawRect(bounds, p1);
                         }
-                        groupPhotoImageView.setImageBitmap(mutableBmp);
-
-                        for (FaceItem face : faceItemList) {
-                            originalNames.add(face.getName());
-                        }
                     }
-                    else {
-                        groupPhotoImageView.setImageBitmap(mutableBmp);
-                        Toast.makeText(this, "Picture contains no faces", Toast.LENGTH_SHORT).show();
-                        if (imageUris.isEmpty()) {
-                            // No more images to process, launch ViewAttendanceActivity
-                            launchViewAttendanceActivity();
-                        } else {
-                            processNextImage();  // Automatically process the next image if no faces are found
-                        }
-                    }
-
+                    processNextImage();  // Automatically process the next image
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(RecognizeActivity.this, "Failed to detect faces: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    processNextImage();  // Automatically process the next image
                 });
     }
 
@@ -354,7 +332,9 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
             String recognizedName = recognition.getDistance() < 1 ? recognition.getTitle() : "Unknown";
             canvas.drawText(recognizedName, bound.left, bound.top, p1);
             // Update RecyclerView with new recognized face
-            faceItemList.add(new FaceItem(croppedFace, recognizedName));
+            FaceItem faceItem = new FaceItem(croppedFace, recognizedName);
+            faceItemList.add(faceItem);
+            originalNames.add(recognizedName); // Add the original name to the list
             faceAdapter.notifyDataSetChanged();
         }
 
