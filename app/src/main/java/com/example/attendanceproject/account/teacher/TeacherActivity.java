@@ -2,6 +2,8 @@ package com.example.attendanceproject.account.teacher;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -24,6 +26,9 @@ import java.util.ArrayList;
 public class TeacherActivity extends AppCompatActivity {
     private FirebaseFirestore fStore;
     private RecyclerView recyclerView;
+
+    private ProgressBar progressBar;
+
     private EntityAdapter courseAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private ArrayList<EntityItem> courseItems = new ArrayList<>();
@@ -42,6 +47,9 @@ public class TeacherActivity extends AppCompatActivity {
         recyclerView.setHasFixedSize(true);
         layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
+
+        progressBar = findViewById(R.id.progressBar); // Initialize ProgressBar
+
 
         courseAdapter = new EntityAdapter(this, courseItems);
         courseAdapter.setOnItemClickListener(this::onItemClicked);
@@ -70,10 +78,13 @@ public class TeacherActivity extends AppCompatActivity {
 
 
     private void loadCoursesForUser() {
+        progressBar.setVisibility(View.VISIBLE); // Show ProgressBar
+
         DocumentReference userDocRef = fStore.collection("Users").document(user.getUid());
         userDocRef.collection("CoursesEnrolled")
                 .get()
                 .addOnCompleteListener(task -> {
+                    progressBar.setVisibility(View.GONE); // Hide ProgressBar
                     if (task.isSuccessful()) {
                         courseItems.clear(); // Clear the existing items
                         for (QueryDocumentSnapshot document : task.getResult()) {
