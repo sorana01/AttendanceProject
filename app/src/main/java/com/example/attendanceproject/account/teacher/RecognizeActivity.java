@@ -42,6 +42,7 @@ import com.github.chrisbanes.photoview.PhotoView;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.mlkit.vision.common.InputImage;
@@ -212,6 +213,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                             document.getReference().update("attendees", existingAttendees)
                                     .addOnSuccessListener(aVoid -> {
                                         Log.d("Firestore Attendance", "DocumentSnapshot successfully updated with new attendees!");
+                                        updateUsersAttendance(attendeeNames, FirebaseFirestore.getInstance().document("Courses/" + courseId));
                                         progressBar.setVisibility(View.GONE);
                                     })
                                     .addOnFailureListener(e -> Log.w("Firestore", "Error updating document", e));
@@ -230,6 +232,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                                 .addOnSuccessListener(documentReference -> {
                                     Log.d("Firestore Attendance", "DocumentSnapshot written with ID: " + documentReference.getId());
                                     Log.d("Firestore Attendance", "Course id passed " + courseId);
+                                    updateUsersAttendance(attendeeNames, FirebaseFirestore.getInstance().document("Courses/" + courseId));
                                     progressBar.setVisibility(View.GONE);
                                     launchViewAttendanceActivity(); // Open ViewAttendanceActivity after saving
                                 })
@@ -237,6 +240,52 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                     }
                 })
                 .addOnFailureListener(e -> Log.w("Firestore", "Error checking for existing document", e));
+    }
+
+    private void updateUsersAttendance(List<String> attendeeNames, DocumentReference courseDocRef) {
+        Log.d("Firestore User Attendance", "Attendee names: " + attendeeNames);
+        Log.d("Firestore User Attendance", "Course Path: " + courseDocRef.getPath());
+
+        for (String attendeeName : attendeeNames) {
+            firestore.collection("Users")
+                    .whereEqualTo("FullName", attendeeName)
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        if (queryDocumentSnapshots.isEmpty()) {
+                            Log.w("Firestore User Attendance", "No user found with name: " + attendeeName);
+                            return;
+                        }
+                        for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                            DocumentReference userDocRef = document.getReference();
+                            Log.d("Firestore User Attendance", "User found: " + userDocRef.getId());
+
+                            userDocRef.collection("CoursesEnrolled")
+                                    .whereEqualTo("courseReference", courseDocRef) // Ensure the path matches exactly
+                                    .get()
+                                    .addOnSuccessListener(coursesSnapshot -> {
+                                        if (coursesSnapshot.isEmpty()) {
+                                            Log.w("Firestore User Attendance", "No enrolled course found for user: " + userDocRef.getId());
+                                            return;
+                                        }
+                                        for (QueryDocumentSnapshot courseDoc : coursesSnapshot) {
+                                            DocumentReference userCourseDocRef = courseDoc.getReference();
+                                            Log.d("Firestore User Attendance", "Course found for user: " + userCourseDocRef.getId());
+
+                                            Map<String, Object> attendanceData = new HashMap<>();
+                                            attendanceData.put("week", courseWeek);
+                                            attendanceData.put("status", "Present");
+
+                                            userCourseDocRef.collection("Attendance")
+                                                    .add(attendanceData)
+                                                    .addOnSuccessListener(aVoid -> Log.d("Firestore User Attendance", "User attendance successfully updated!"))
+                                                    .addOnFailureListener(e -> Log.w("Firestore User Attendance", "Error updating user attendance", e));
+                                        }
+                                    })
+                                    .addOnFailureListener(e -> Log.w("Firestore User Attendance", "Error finding enrolled course", e));
+                        }
+                    })
+                    .addOnFailureListener(e -> Log.w("Firestore User Attendance", "Error finding user", e));
+        }
     }
 
     private void restoreOriginalNames() {
