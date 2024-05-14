@@ -17,9 +17,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.R;
-import com.example.attendanceproject.account.admin.CourseDetailsBottomSheetFragment;
-import com.example.attendanceproject.account.admin.EntityAdapter;
-import com.example.attendanceproject.account.admin.EntityItem;
+import com.example.attendanceproject.account.adapters.EntityAdapter;
+import com.example.attendanceproject.account.adapters.EntityItem;
 import com.example.attendanceproject.databinding.FragmentCoursesBinding;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -130,7 +129,8 @@ public class CoursesFragment extends Fragment {
         fStore.collection("Courses")
                 .add(courseData)
                 .addOnSuccessListener(documentReference -> {
-                    Log.d("Firestore", "Course added with ID: " + documentReference.getId());
+                    String courseId = documentReference.getId(); // Get the generated document ID
+                    Log.d("Firestore", "Course added with ID: " + courseId);
                     Toast.makeText(getActivity(), "Course added successfully", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
@@ -163,8 +163,10 @@ public class CoursesFragment extends Fragment {
         Bundle bundle = new Bundle();
         bundle.putString("courseName", item.getEntityName());
         bundle.putString("courseDetail", item.getEntityDetail());
+        bundle.putString("courseId", item.getEntityId());  // Pass the course ID
 
-        CourseDetailsBottomSheetFragment bottomSheet = CourseDetailsBottomSheetFragment.newInstance();
+
+        CourseAdminBottomSheetFragment bottomSheet = CourseAdminBottomSheetFragment.newInstance();
         bottomSheet.setArguments(bundle); // Pass data
         bottomSheet.show(getChildFragmentManager(), bottomSheet.getTag());
     }

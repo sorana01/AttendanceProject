@@ -1,4 +1,4 @@
-package com.example.attendanceproject.account.admin;
+package com.example.attendanceproject.account.adapters;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -7,10 +7,11 @@ import android.view.ViewGroup;
 import android.widget.CheckBox;
 import androidx.annotation.NonNull;
 import com.example.attendanceproject.R;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public class CheckableEntityAdapter extends EntityAdapter<CheckableEntityItem>{
+public class CheckableEntityAdapter extends EntityAdapter<CheckableEntityItem> {
     private HashSet<Integer> checkedPositions = new HashSet<>();
 
     public CheckableEntityAdapter(Context context, ArrayList<CheckableEntityItem> entityItems) {

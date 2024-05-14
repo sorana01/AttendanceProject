@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.R;
+import com.example.attendanceproject.account.adapters.CheckableEntityAdapter;
+import com.example.attendanceproject.account.adapters.CheckableEntityItem;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
@@ -22,7 +24,6 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +34,7 @@ import java.util.Set;
 
 // TODO from save change to delete button for view options
 // TODO delete button will delete assigned user from course and course for assigned user
-public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment {
+public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
     private RecyclerView recyclerView;
     private FirebaseFirestore fStore;
     private CheckableEntityAdapter checkableEntityAdapter;
@@ -49,8 +50,8 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
 
 
 
-    public static CourseDetailsBottomSheetFragment newInstance() {
-        return new CourseDetailsBottomSheetFragment();
+    public static CourseAdminBottomSheetFragment newInstance() {
+        return new CourseAdminBottomSheetFragment();
     }
 
     @Override
@@ -64,7 +65,7 @@ public class CourseDetailsBottomSheetFragment extends BottomSheetDialogFragment 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.bottom_sheet_course_details, container, false);
+        return inflater.inflate(R.layout.bottom_sheet_course_admin, container, false);
     }
 
     @Override

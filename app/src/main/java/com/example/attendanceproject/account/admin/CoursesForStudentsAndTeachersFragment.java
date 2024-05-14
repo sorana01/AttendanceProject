@@ -12,6 +12,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.attendanceproject.account.adapters.CheckableEntityAdapter;
+import com.example.attendanceproject.account.adapters.CheckableEntityItem;
 import com.example.attendanceproject.databinding.FragmentCoursesForStudentsAndTeachersBinding;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;

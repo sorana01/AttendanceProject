@@ -53,6 +53,15 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".account.teacher.RecognizeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".account.teacher.ViewAttendanceActivity"
+            android:exported="false" />
+        <activity
+            android:name=".account.teacher.ManualAttendanceActivity"
+            android:exported="false" />
+        <activity
             android:name=".account.teacher.TeacherActivity"
             android:exported="false" />
         <activity

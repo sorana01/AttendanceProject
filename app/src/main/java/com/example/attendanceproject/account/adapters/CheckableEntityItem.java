@@ -1,6 +1,6 @@
-package com.example.attendanceproject.account.admin;
+package com.example.attendanceproject.account.adapters;
 
-public class CheckableEntityItem extends EntityItem{
+public class CheckableEntityItem extends EntityItem {
     private boolean isChecked;  // This field is specific to the checkable item
 
     public CheckableEntityItem(String entityName, String entityDetail) {

@@ -1,200 +1,98 @@
 package com.example.attendanceproject.account.teacher;
 
-import android.annotation.SuppressLint;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.Rect;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
-import android.provider.MediaStore;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.R;
-import com.example.attendanceproject.face_rec.FaceClassifier;
-import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
+import com.example.attendanceproject.account.adapters.EntityAdapter;
+import com.example.attendanceproject.account.adapters.EntityItem;
+import com.example.attendanceproject.account.admin.CourseAdminBottomSheetFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.face.Face;
-import com.google.mlkit.vision.face.FaceDetection;
-import com.google.mlkit.vision.face.FaceDetector;
-import com.google.mlkit.vision.face.FaceDetectorOptions;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-import java.io.FileDescriptor;
-import java.io.IOException;
+import java.util.ArrayList;
 
 public class TeacherActivity extends AppCompatActivity {
-    private ImageView groupPhotoImageView;
-    private Button buttonRecognize;
-    private Canvas canvas;
-    private Uri imageUri;
-    private Bitmap input;
-
-    private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-    FaceDetectorOptions highAccuracyOpts =
-            new FaceDetectorOptions.Builder()
-                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-                    .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
-                    .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
-                    .build();
-    private FaceDetector detector;
-    private FaceClassifier faceClassifier;
+    private FirebaseFirestore fStore;
+    private RecyclerView recyclerView;
+    private EntityAdapter courseAdapter;
+    private RecyclerView.LayoutManager layoutManager;
+    private ArrayList<EntityItem> courseItems = new ArrayList<>();
     private FirebaseUser user;
-    private FaceClassifier.Recognition recognition;
-
-
-    private ActivityResultLauncher<String> getContent = registerForActivityResult(
-            new ActivityResultContracts.GetContent(),
-            new ActivityResultCallback<Uri>() {
-                @Override
-                public void onActivityResult(Uri uri) {
-                    // Handle the returned Uri
-                    if (uri != null) {
-                        imageUri = uri;
-                        input = uriToBitmap(imageUri);
-                        input = rotateBitmap(input);
-                        groupPhotoImageView.setImageBitmap(input);
-
-                        detectSingleFace(input);
-                    }
-                }
-            });
-
-
+    private FirebaseAuth fAuth;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_teacher);
 
-        groupPhotoImageView = findViewById(R.id.groupPhotoImageView);
-        buttonRecognize = findViewById(R.id.buttonRecognize);
+        fStore = FirebaseFirestore.getInstance(); // Initialize Firestore
+        fAuth = FirebaseAuth.getInstance();
+        user = fAuth.getCurrentUser();
 
-        user = FirebaseAuth.getInstance().getCurrentUser();
-        detector = FaceDetection.getClient(highAccuracyOpts);
-        try {
-            // CHANGE MODEL
-            faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, this);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setHasFixedSize(true);
+        layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
 
-        buttonRecognize.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                getContent.launch("image/*");
-            }
-        });
+        courseAdapter = new EntityAdapter(this, courseItems);
+        courseAdapter.setOnItemClickListener(this::onItemClicked);
+        recyclerView.setAdapter(courseAdapter);
+
+        loadCoursesForUser();
     }
 
-    private void detectSingleFace(Bitmap bitmap) {
-        // to be able to draw on the image
-        Bitmap mutableBmp = bitmap.copy(Bitmap.Config.ARGB_8888, true);
-        canvas = new Canvas(mutableBmp);
-        InputImage image = InputImage.fromBitmap(bitmap, 0);
-        detector.process(image)
-                .addOnSuccessListener(faces -> {
-                    for (Face face : faces) {
-                        Rect bounds = face.getBoundingBox();
-                        Paint p1 = new Paint();
-                        p1.setColor(Color.RED);
-                        p1.setStyle(Paint.Style.STROKE);
-                        p1.setStrokeWidth(15);
+    private void onItemClicked(EntityItem item) {
+        showCourseDetailsBottomSheet(item);
+    }
 
-                        performFaceRecognition(bounds, bitmap);
-                        canvas.drawRect(bounds, p1);
+    private void showCourseDetailsBottomSheet(EntityItem item) {
+        // You can pass data to your bottom sheet fragment via arguments if needed
+        Bundle bundle = new Bundle();
+
+        bundle.putString("courseId", item.getEntityId());  // Pass the course ID
+        Log.d("TeacherActivity", "Course id " + item.getEntityId());
+        bundle.putString("courseName", item.getEntityName());
+        bundle.putString("courseDetail", item.getEntityDetail());
+
+        CourseTeacherBottomSheetFragment bottomSheet = CourseTeacherBottomSheetFragment.newInstance();
+        bottomSheet.setArguments(bundle); // Pass data
+        bottomSheet.show(getSupportFragmentManager(), bottomSheet.getTag());
+    }
+
+
+    private void loadCoursesForUser() {
+        DocumentReference userDocRef = fStore.collection("Users").document(user.getUid());
+        userDocRef.collection("CoursesEnrolled")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        courseItems.clear(); // Clear the existing items
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            DocumentReference courseRefPath = document.getDocumentReference("courseReference");
+                            if (courseRefPath != null) {
+                                courseRefPath.get()
+                                        .addOnSuccessListener(courseDoc -> {
+                                            String courseId = courseDoc.getId();
+                                            String courseName = courseDoc.getString("courseName");
+                                            String courseDetail = courseDoc.getString("courseDetail");
+                                            courseItems.add(new EntityItem(courseName, courseDetail, courseId));
+                                            courseAdapter.notifyDataSetChanged();
+                                        })
+                                        .addOnFailureListener(e -> Toast.makeText(this, "Error loading course", Toast.LENGTH_SHORT).show());
+                            }
+                        }
+                    } else {
+                        Toast.makeText(this, "Error loading courses", Toast.LENGTH_SHORT).show();
                     }
-                    groupPhotoImageView.setImageBitmap(mutableBmp);
-
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(TeacherActivity.this, "Failed to detect faces: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
-
-    public void performFaceRecognition(Rect bound, Bitmap input) {
-        if (bound.top < 0) {
-            bound.top = 0;
-        }
-        if (bound.left < 0) {
-            bound.left = 0;
-        }
-        if (bound.right > input.getWidth()) {
-            bound.right = input.getWidth() - 1;
-        }
-        if (bound.bottom > input.getHeight()) {
-            bound.bottom = input.getHeight() - 1;
-        }
-
-        Bitmap croppedFace = Bitmap.createBitmap(input, bound.left, bound.top, bound.width(), bound.height());
-        // CHANGE MODEL
-        croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
-        recognition = faceClassifier.recognizeImageRec(croppedFace, true);
-        Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
-        // Call upload method here with embedding data
-//        uploadImageToFirebaseStorage(recognition);
-
-        // excel attendance export
-
-        if (recognition != null) {
-            Log.d("FaceRecognition", recognition.getTitle() + "   " + recognition.getDistance());
-            Paint p1 = new Paint();
-            p1.setColor(Color.WHITE);
-            p1.setTextSize(35);
-            if (recognition.getDistance() < 1) {
-                canvas.drawText(recognition.getTitle(), bound.left, bound.top, p1);
-            } else {
-                canvas.drawText("Unknown", bound.left, bound.top, p1);
-            }
-        }
-
-    }
-
-    private Bitmap uriToBitmap(Uri selectedFileUri) {
-        try {
-            ParcelFileDescriptor parcelFileDescriptor =
-                    getContentResolver().openFileDescriptor(selectedFileUri, "r");
-            FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
-            Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor);
-            parcelFileDescriptor.close();
-            return image;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return  null;
-    }
-
-    @SuppressLint("Range")
-    public Bitmap rotateBitmap(Bitmap input){
-        String[] orientationColumn = {MediaStore.Images.Media.ORIENTATION};
-        Cursor cur = getContentResolver().query(imageUri, orientationColumn, null, null, null);
-        int orientation = -1;
-        if (cur != null && cur.moveToFirst()) {
-            orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
-        }
-        Log.d("tryOrientation",orientation+"");
-        Matrix rotationMatrix = new Matrix();
-        rotationMatrix.setRotate(orientation);
-        Bitmap cropped = Bitmap.createBitmap(input,0,0, input.getWidth(), input.getHeight(), rotationMatrix, true);
-        return cropped;
-    }
-
-
 }
