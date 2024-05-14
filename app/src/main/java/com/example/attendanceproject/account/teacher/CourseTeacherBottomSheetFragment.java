@@ -95,9 +95,17 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
                     if (task.isSuccessful()) {
                         QuerySnapshot querySnapshot = task.getResult();
                         if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                            showAttendanceExistsDialog(activityClass, selectedWeek);
+                            if (activityClass == ViewAttendanceActivity.class) {
+                                startAttendanceActivity(activityClass, selectedWeek);
+                            }
+                            else
+                                showAttendanceExistsDialog(activityClass, selectedWeek);
                         } else {
-                            startAttendanceActivity(activityClass, selectedWeek);
+                            if (activityClass == ViewAttendanceActivity.class) {
+                                Toast.makeText(getContext(), "Attendance for course " + courseName + " week " + selectedWeek + " doesn't exist", Toast.LENGTH_SHORT).show();
+                            }
+                            else
+                                startAttendanceActivity(activityClass, selectedWeek);
                         }
                     } else {
                         Toast.makeText(getContext(), "Error checking attendance records", Toast.LENGTH_SHORT).show();

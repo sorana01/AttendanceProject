@@ -2,6 +2,7 @@ package com.example.attendanceproject.account.teacher;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -41,6 +42,7 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceDetection;
@@ -60,7 +62,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
     private PhotoView groupPhotoImageView;
     private Button buttonRecognize, buttonSave;
     private Canvas canvas;
-    private Uri imageUri;
+    private List<Uri> imageUris = new ArrayList<>();
     private Bitmap input;
     private RecyclerView recyclerViewRecognizedFaces;
     private FaceAdapter faceAdapter;
@@ -68,7 +70,6 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
 
     private String courseName, courseDetail, courseId;
     private int courseWeek;
-    private AttendanceManager attendanceManager;
     private List<String> originalNames;
 
 
@@ -86,20 +87,15 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
 
 
     private ActivityResultLauncher<String> getContent = registerForActivityResult(
-            new ActivityResultContracts.GetContent(),
-            new ActivityResultCallback<Uri>() {
+            new ActivityResultContracts.GetMultipleContents(),
+            new ActivityResultCallback<List<Uri>>() {
                 @Override
-                public void onActivityResult(Uri uri) {
-                    // Handle the returned Uri
-                    if (uri != null) {
-                        imageUri = uri;
-                        input = uriToBitmap(imageUri);
-                        input = rotateBitmap(input);
-                        groupPhotoImageView.setImageBitmap(input);
-
-                        detectSingleFace(input);
-                        buttonRecognize.setVisibility(View.GONE); // Hide the Recognize/Add photo button
-                        buttonSave.setVisibility(View.VISIBLE); // Show the Save button
+                public void onActivityResult(List<Uri> uris) {
+                    // Handle the returned URIs
+                    if (uris != null && !uris.isEmpty()) {
+                        imageUris.clear();
+                        imageUris.addAll(uris);
+                        processNextImage();
                     }
                 }
             });
@@ -128,7 +124,6 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         courseName = getIntent().getStringExtra("courseName");
         courseDetail = getIntent().getStringExtra("courseDetail");
         courseWeek = getIntent().getIntExtra("courseWeek", 1);
-        attendanceManager = new AttendanceManager(this);
         originalNames = new ArrayList<>();
 
         // Set up onBackPressed handling with callback
@@ -182,15 +177,17 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                 .setPositiveButton("Save", (dialog, which) -> {
                     saveAttendanceToFirestore();
                     Log.d("NAMES", "Saved names: " + namesBuilder.toString());
-                    buttonSave.setVisibility(View.GONE);
-                    buttonRecognize.setVisibility(View.VISIBLE);
                     faceItemList.clear();
                     originalNames.clear();
                     faceAdapter.notifyDataSetChanged();
-                    groupPhotoImageView.setImageResource(R.drawable.poza_grup);
+                    if (!imageUris.isEmpty()) {
+                        processNextImage();
+                    } else {
+                        // All images processed, launch ViewAttendanceActivity
+                        launchViewAttendanceActivity();
+                    }
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> {
-                    // Restore original names if user cancels the operation
                     restoreOriginalNames();
                 });
 
@@ -204,19 +201,44 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                 .map(FaceItem::getName)
                 .collect(Collectors.toList());
 
-        Map<String, Object> attendanceRecord = new HashMap<>();
-        attendanceRecord.put("courseID", FirebaseFirestore.getInstance().document("Courses/" + courseId));
-        attendanceRecord.put("week", courseWeek);
-        attendanceRecord.put("date", new Timestamp(new Date()));
-        attendanceRecord.put("attendees", attendeeNames);
-
         firestore.collection("AttendanceRecords")
-                .add(attendanceRecord)
-                .addOnSuccessListener(documentReference -> {
-                    Log.d("Firestore Attendance", "DocumentSnapshot written with ID: " + documentReference.getId());
-                    Log.d("Firestore Attendance", "Course id passed " + courseId);
+                .whereEqualTo("courseID", FirebaseFirestore.getInstance().document("Courses/" + courseId))
+                .whereEqualTo("week", courseWeek)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        // Document exists, append to the attendees list
+                        for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                            List<String> existingAttendees = (List<String>) document.get("attendees");
+                            if (existingAttendees == null) {
+                                existingAttendees = new ArrayList<>();
+                            }
+                            existingAttendees.addAll(attendeeNames);
+                            document.getReference().update("attendees", existingAttendees)
+                                    .addOnSuccessListener(aVoid -> {
+                                        Log.d("Firestore Attendance", "DocumentSnapshot successfully updated with new attendees!");
+                                    })
+                                    .addOnFailureListener(e -> Log.w("Firestore", "Error updating document", e));
+                        }
+                    } else {
+                        // No document exists, create a new one
+                        Map<String, Object> attendanceRecord = new HashMap<>();
+                        attendanceRecord.put("courseID", FirebaseFirestore.getInstance().document("Courses/" + courseId));
+                        attendanceRecord.put("courseName", courseName);
+                        attendanceRecord.put("week", courseWeek);
+                        attendanceRecord.put("date", new Timestamp(new Date()));
+                        attendanceRecord.put("attendees", attendeeNames);
+
+                        firestore.collection("AttendanceRecords")
+                                .add(attendanceRecord)
+                                .addOnSuccessListener(documentReference -> {
+                                    Log.d("Firestore Attendance", "DocumentSnapshot written with ID: " + documentReference.getId());
+                                    Log.d("Firestore Attendance", "Course id passed " + courseId);
+                                })
+                                .addOnFailureListener(e -> Log.w("Firestore", "Error adding document", e));
+                    }
                 })
-                .addOnFailureListener(e -> Log.w("Firestore", "Error adding document", e));
+                .addOnFailureListener(e -> Log.w("Firestore", "Error checking for existing document", e));
     }
 
     private void restoreOriginalNames() {
@@ -225,6 +247,38 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         }
         faceAdapter.notifyDataSetChanged();
     }
+
+    private void launchViewAttendanceActivity() {
+        new android.os.Handler().postDelayed(() -> {
+            Intent intent = new Intent(this, ViewAttendanceActivity.class);
+            intent.putExtra("courseId", courseId);
+            intent.putExtra("courseName", courseName);
+            intent.putExtra("courseDetail", courseDetail);
+            intent.putExtra("courseWeek", courseWeek);
+            startActivity(intent);
+            finish(); // Finish the current activity
+        }, 2000); // Delay of 2 seconds (2000 milliseconds)
+    }
+
+
+    private void processNextImage() {
+        if (!imageUris.isEmpty()) {
+            Uri nextUri = imageUris.remove(0);
+            input = uriToBitmap(nextUri);
+            input = rotateBitmap(input, nextUri);
+            groupPhotoImageView.setImageBitmap(input);
+            faceItemList.clear(); // Clear the list before detecting faces in the next image
+            originalNames.clear(); // Clear the original names list
+            detectSingleFace(input);
+            buttonRecognize.setVisibility(View.GONE);
+            buttonSave.setVisibility(View.VISIBLE);
+        }
+        else {
+            // No more images to process, launch ViewAttendanceActivity
+            launchViewAttendanceActivity();
+        }
+    }
+
 
     private void detectSingleFace(Bitmap bitmap) {
         // to be able to draw on the image
@@ -253,6 +307,12 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                     else {
                         groupPhotoImageView.setImageBitmap(mutableBmp);
                         Toast.makeText(this, "Picture contains no faces", Toast.LENGTH_SHORT).show();
+                        if (imageUris.isEmpty()) {
+                            // No more images to process, launch ViewAttendanceActivity
+                            launchViewAttendanceActivity();
+                        } else {
+                            processNextImage();  // Automatically process the next image if no faces are found
+                        }
                     }
 
                 })
@@ -317,7 +377,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
     }
 
     @SuppressLint("Range")
-    public Bitmap rotateBitmap(Bitmap input){
+    public Bitmap rotateBitmap(Bitmap input, Uri imageUri){
         String[] orientationColumn = {MediaStore.Images.Media.ORIENTATION};
         Cursor cur = getContentResolver().query(imageUri, orientationColumn, null, null, null);
         int orientation = -1;

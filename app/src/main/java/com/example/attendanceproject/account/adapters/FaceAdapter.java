@@ -80,7 +80,10 @@ public class FaceAdapter extends RecyclerView.Adapter<FaceAdapter.FaceViewHolder
             @Override
             public void afterTextChanged(Editable editable) {
                 // Update item with current text
-                faceItemList.get(holder.getAdapterPosition()).setName(editable.toString());
+                int adapterPosition = holder.getAdapterPosition();
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    faceItemList.get(adapterPosition).setName(editable.toString());
+                }
             }
         };
 
@@ -90,7 +93,10 @@ public class FaceAdapter extends RecyclerView.Adapter<FaceAdapter.FaceViewHolder
         holder.etName.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 listener.onEditTextVisibilityChange(true);
-                faceItemList.get(holder.getAdapterPosition()).setName(holder.etName.getText().toString());
+                int adapterPosition = holder.getAdapterPosition();
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    faceItemList.get(adapterPosition).setName(holder.etName.getText().toString());
+                }
             }
         });
     }
