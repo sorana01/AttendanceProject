@@ -107,10 +107,10 @@
             android:name=".imagepicker.RegisterActivityMine"
             android:exported="false" />
         <activity
-            android:name=".account.RegisterUserActivity"
+            android:name=".account.auth.RegisterUserActivity"
             android:exported="false" />
         <activity
-            android:name=".account.LoginUserActivity"
+            android:name=".account.auth.LoginUserActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

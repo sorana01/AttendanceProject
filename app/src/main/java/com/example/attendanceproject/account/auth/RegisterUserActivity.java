@@ -1,4 +1,4 @@
-package com.example.attendanceproject.account;
+package com.example.attendanceproject.account.auth;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;

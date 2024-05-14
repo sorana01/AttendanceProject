@@ -1,4 +1,4 @@
-package com.example.attendanceproject.account;
+package com.example.attendanceproject.account.auth;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,7 +13,6 @@ import android.widget.Toast;
 import com.example.attendanceproject.R;
 import com.example.attendanceproject.account.admin.AdminActivity;
 import com.example.attendanceproject.account.student.StudentActivity;
-import com.example.attendanceproject.account.teacher.RecognizeActivity;
 import com.example.attendanceproject.account.teacher.TeacherActivity;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
