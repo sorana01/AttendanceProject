@@ -129,6 +129,10 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         courseWeek = getIntent().getIntExtra("courseWeek", 1);
         originalNames = new ArrayList<>();
 
+        if (courseName != null) {
+            getSupportActionBar().setTitle(courseName);
+        }
+
         // Set up onBackPressed handling with callback
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
             @Override
@@ -308,7 +312,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
     }
 
     private void launchViewAttendanceActivity() {
-        Intent intent = new Intent(this, ViewAttendanceActivity.class);
+        Intent intent = new Intent(this, ViewAttendanceTeacherActivity.class);
         intent.putExtra("courseId", courseId);
         intent.putExtra("courseName", courseName);
         intent.putExtra("courseDetail", courseDetail);

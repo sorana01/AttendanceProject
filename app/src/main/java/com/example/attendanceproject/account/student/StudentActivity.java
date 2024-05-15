@@ -1,102 +1,109 @@
 package com.example.attendanceproject.account.student;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.TextView;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.R;
-import com.example.attendanceproject.UserAccountActivity;
+import com.example.attendanceproject.account.adapters.EntityAdapter;
+import com.example.attendanceproject.account.adapters.EntityItem;
+import com.example.attendanceproject.account.admin.CourseAdminBottomSheetFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-import java.util.Objects;
+import java.util.ArrayList;
 
 public class StudentActivity extends AppCompatActivity {
-
-    private TextView welcomeMessageTextView;
-    private TextView profileCompletionTextView;
-
-    private FirebaseAuth fAuth;
     private FirebaseFirestore fStore;
+    private RecyclerView recyclerView;
+
+    private ProgressBar progressBar;
+
+    private EntityAdapter courseAdapter;
+    private RecyclerView.LayoutManager layoutManager;
+    private ArrayList<EntityItem> courseItems = new ArrayList<>();
     private FirebaseUser user;
-
-    // Define an ActivityResultLauncher for launching UserAccountActivity
-    private ActivityResultLauncher<Intent> userAccountLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == RESULT_OK) {
-                    // Perform your check when returning from UserAccountActivity
-                    checkPictureAdded(user.getUid());
-                }
-            });
-
-
+    private FirebaseAuth fAuth;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_student);
 
+        fStore = FirebaseFirestore.getInstance(); // Initialize Firestore
         fAuth = FirebaseAuth.getInstance();
-        fStore = FirebaseFirestore.getInstance();
         user = fAuth.getCurrentUser();
 
-        welcomeMessageTextView = findViewById(R.id.welcomeMessage);
-        profileCompletionTextView = findViewById(R.id.profileCompletionNotification);
+        recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setHasFixedSize(true);
+        layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
 
-        // Set the welcome message with user's display name
-        if (user != null && user.getDisplayName() != null) {
-            welcomeMessageTextView.setText("Welcome, " + user.getDisplayName() + "!");
-        } else {
-            welcomeMessageTextView.setText("Welcome, user!");
-        }
+        progressBar = findViewById(R.id.progressBar); // Initialize ProgressBar
 
-        checkPictureAdded(user.getUid());
 
-        profileCompletionTextView.setOnClickListener(view -> {
-            Intent intent = new Intent(this, UserAccountActivity.class);
-            userAccountLauncher.launch(intent);
-        });
+        courseAdapter = new EntityAdapter(this, courseItems);
+        courseAdapter.setOnItemClickListener(this::onItemClicked);
+        recyclerView.setAdapter(courseAdapter);
 
+        loadCoursesForUser();
     }
 
-    private void checkPictureAdded(String uid) {
-        DocumentReference df = fStore.collection("Users").document(uid);
-        df.get().addOnSuccessListener(documentSnapshot -> {
-            // Check if the imageUrl exists and is not null
-            if (documentSnapshot.contains("imageUrl") && documentSnapshot.getString("imageUrl") != null) {
-                // imageUrl exists and is not null
-                String imageUrl = documentSnapshot.getString("imageUrl");
-                profileCompletionTextView.setVisibility(View.GONE);
-            } else {
-                // imageUrl does not exist or is null
-                profileCompletionTextView.setVisibility(View.VISIBLE);
-            }
-        }).addOnFailureListener(e -> {
-            // Handle any errors here
-            Log.e("FirestoreError", "Error checking for image URL", e);
-        });
+    private void onItemClicked(EntityItem item) {
+        showCourseDetailsBottomSheet(item);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Check if the picture has been added every time the activity comes to the foreground
-        checkPictureAdded(user.getUid());
+    private void showCourseDetailsBottomSheet(EntityItem item) {
+        // You can pass data to your bottom sheet fragment via arguments if needed
+        Bundle bundle = new Bundle();
+
+        bundle.putString("courseId", item.getEntityId());  // Pass the course ID
+        Log.d("StudentActivity", "Course id " + item.getEntityId());
+        bundle.putString("courseName", item.getEntityName());
+        bundle.putString("courseDetail", item.getEntityDetail());
+
+        CourseStudentBottomSheetFragment bottomSheet = CourseStudentBottomSheetFragment.newInstance();
+        bottomSheet.setArguments(bundle); // Pass data
+        bottomSheet.show(getSupportFragmentManager(), bottomSheet.getTag());
     }
 
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-        checkPictureAdded(user.getUid());
-    }
 
+    private void loadCoursesForUser() {
+        progressBar.setVisibility(View.VISIBLE); // Show ProgressBar
+
+        DocumentReference userDocRef = fStore.collection("Users").document(user.getUid());
+        userDocRef.collection("CoursesEnrolled")
+                .get()
+                .addOnCompleteListener(task -> {
+                    progressBar.setVisibility(View.GONE); // Hide ProgressBar
+                    if (task.isSuccessful()) {
+                        courseItems.clear(); // Clear the existing items
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            DocumentReference courseRefPath = document.getDocumentReference("courseReference");
+                            if (courseRefPath != null) {
+                                courseRefPath.get()
+                                        .addOnSuccessListener(courseDoc -> {
+                                            String courseId = courseDoc.getId();
+                                            String courseName = courseDoc.getString("courseName");
+                                            String courseDetail = courseDoc.getString("courseDetail");
+                                            courseItems.add(new EntityItem(courseName, courseDetail, courseId));
+                                            courseAdapter.notifyDataSetChanged();
+                                        })
+                                        .addOnFailureListener(e -> Toast.makeText(this, "Error loading course", Toast.LENGTH_SHORT).show());
+                            }
+                        }
+                    } else {
+                        Toast.makeText(this, "Error loading courses", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
 }
