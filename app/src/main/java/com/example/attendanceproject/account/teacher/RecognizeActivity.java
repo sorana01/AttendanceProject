@@ -271,14 +271,26 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                                             DocumentReference userCourseDocRef = courseDoc.getReference();
                                             Log.d("Firestore User Attendance", "Course found for user: " + userCourseDocRef.getId());
 
-                                            Map<String, Object> attendanceData = new HashMap<>();
-                                            attendanceData.put("week", courseWeek);
-                                            attendanceData.put("status", "Present");
-
+                                            // Check if attendance for the week already exists
                                             userCourseDocRef.collection("Attendance")
-                                                    .add(attendanceData)
-                                                    .addOnSuccessListener(aVoid -> Log.d("Firestore User Attendance", "User attendance successfully updated!"))
-                                                    .addOnFailureListener(e -> Log.w("Firestore User Attendance", "Error updating user attendance", e));
+                                                    .whereEqualTo("week", courseWeek)
+                                                    .get()
+                                                    .addOnSuccessListener(attendanceSnapshot -> {
+                                                        if (attendanceSnapshot.isEmpty()) {
+                                                            // Attendance does not exist, add new entry
+                                                            Map<String, Object> attendanceData = new HashMap<>();
+                                                            attendanceData.put("week", courseWeek);
+                                                            attendanceData.put("status", "Present");
+
+                                                            userCourseDocRef.collection("Attendance")
+                                                                    .add(attendanceData)
+                                                                    .addOnSuccessListener(aVoid -> Log.d("Firestore User Attendance", "User attendance successfully updated!"))
+                                                                    .addOnFailureListener(e -> Log.w("Firestore User Attendance", "Error updating user attendance", e));
+                                                        } else {
+                                                            Log.d("Firestore User Attendance", "Attendance already exists for week: " + courseWeek + " for user: " + userDocRef.getId());
+                                                        }
+                                                    })
+                                                    .addOnFailureListener(e -> Log.w("Firestore User Attendance", "Error checking attendance for user", e));
                                         }
                                     })
                                     .addOnFailureListener(e -> Log.w("Firestore User Attendance", "Error finding enrolled course", e));
