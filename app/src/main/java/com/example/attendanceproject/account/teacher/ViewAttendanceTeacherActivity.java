@@ -31,7 +31,12 @@ public class ViewAttendanceTeacherActivity extends AppCompatActivity {
 
         // Retrieve data from the previous activity
         String courseId = getIntent().getStringExtra("courseId");
+        String courseName = getIntent().getStringExtra("courseName");
         int week = getIntent().getIntExtra("courseWeek", 1);
+
+        if (courseName != null) {
+            getSupportActionBar().setTitle(courseName);
+        }
 
         if (courseId != null) {
             loadAttendance(courseId, week);

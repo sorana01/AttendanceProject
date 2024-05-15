@@ -129,6 +129,10 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         courseWeek = getIntent().getIntExtra("courseWeek", 1);
         originalNames = new ArrayList<>();
 
+        if (courseName != null) {
+            getSupportActionBar().setTitle(courseName);
+        }
+
         // Set up onBackPressed handling with callback
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
             @Override
