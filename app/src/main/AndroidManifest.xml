@@ -56,13 +56,19 @@
             android:name=".account.teacher.RecognizeActivity"
             android:exported="false" />
         <activity
-            android:name=".account.teacher.ViewAttendanceActivity"
+            android:name=".account.teacher.ViewAttendanceTeacherActivity"
+            android:exported="false" />
+        <activity
+            android:name=".account.student.ViewAttendanceStudentActivity"
             android:exported="false" />
         <activity
             android:name=".account.teacher.ManualAttendanceActivity"
             android:exported="false" />
         <activity
             android:name=".account.teacher.TeacherActivity"
+            android:exported="false" />
+        <activity
+            android:name=".account.student.OldStudentActivity"
             android:exported="false" />
         <activity
             android:name=".account.student.StudentActivity"
