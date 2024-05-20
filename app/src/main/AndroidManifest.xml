@@ -70,6 +70,10 @@
         <activity
             android:name=".account.student.OldStudentActivity"
             android:exported="false" />
+        <activity android:name=".account.auth.RoleSelectionActivity"/>
+        <activity android:name=".account.auth.RegisterTeacherActivity"/>
+        <activity android:name=".account.auth.RegisterStudentActivity"/>
+
         <activity
             android:name=".account.student.StudentActivity"
             android:exported="false" />

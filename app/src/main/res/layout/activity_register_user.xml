@@ -50,6 +50,21 @@
                 app:layout_constraintTop_toBottomOf="@+id/registerName" />
 
             <EditText
+                android:id="@+id/registerPhone"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="16dp"
+                android:ems="10"
+                android:hint="Phone Number"
+                android:inputType="phone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/registerEmail" />
+
+
+            <EditText
                 android:id="@+id/registerPassword"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -61,7 +76,7 @@
                 android:inputType="textPassword"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/registerEmail" />
+                app:layout_constraintTop_toBottomOf="@+id/registerPhone" />
 
             <EditText
                 android:id="@+id/confirmPassword"
@@ -87,6 +102,7 @@
                 android:ems="13"
                 android:hint="CNP/SSN"
                 android:inputType="phone"
+                android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/confirmPassword" />
@@ -101,44 +117,32 @@
                 android:ems="10"
                 android:hint="Student ID"
                 android:inputType="text"
+                android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/registerCnp" />
 
-            <EditText
-                android:id="@+id/registerPhone"
+            <RadioGroup
+                android:id="@+id/roleRadioGroup"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="16dp"
-                android:ems="10"
-                android:hint="Phone Number"
-                android:inputType="phone"
+                android:layout_marginTop="16dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/registerStudentId" />
+                app:layout_constraintTop_toBottomOf="@+id/confirmPassword">
 
-            <CheckBox
-                android:id="@+id/isTeacher"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
-                android:text="Teacher"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/registerPhone" />
+                <RadioButton
+                    android:id="@+id/isTeacher"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Teacher" />
 
-            <CheckBox
-                android:id="@+id/isStudent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="16dp"
-                android:text="Student"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/isTeacher"
-                app:layout_constraintTop_toBottomOf="@+id/registerPhone" />
+                <RadioButton
+                    android:id="@+id/isStudent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Student" />
+            </RadioGroup>
 
             <Button
                 android:id="@+id/registerBtn"
@@ -150,7 +154,7 @@
                 android:text="Create Account"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/isStudent" />
+                app:layout_constraintTop_toBottomOf="@+id/roleRadioGroup" />
 
             <Button
                 android:id="@+id/gotoLogin"

@@ -69,7 +69,7 @@ public class LoginUserActivity extends AppCompatActivity{
         goToRegisterButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(getApplicationContext(), RegisterUserActivity.class));
+                startActivity(new Intent(getApplicationContext(), RoleSelectionActivity.class));
             }
         });
 
