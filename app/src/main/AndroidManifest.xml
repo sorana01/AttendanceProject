@@ -78,7 +78,7 @@
             android:name=".account.student.StudentActivity"
             android:exported="false" />
         <activity
-            android:name=".UserAccountActivity"
+            android:name=".account.auth.UserAccountActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

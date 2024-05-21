@@ -13,7 +13,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
-import com.example.attendanceproject.UserAccountActivity;
 import com.example.attendanceproject.imagepicker.MainActivity2;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;

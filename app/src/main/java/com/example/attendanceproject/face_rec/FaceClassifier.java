@@ -4,8 +4,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 
-import com.example.attendanceproject.UserAccountActivity;
-
 /** Generic interface for interacting with different recognition engines. */
 public interface FaceClassifier {
 

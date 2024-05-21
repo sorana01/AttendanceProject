@@ -1,10 +1,9 @@
-package com.example.attendanceproject;
+package com.example.attendanceproject.account.auth;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -32,15 +31,14 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.attendanceproject.R;
 import com.example.attendanceproject.face_rec.FaceClassifier;
 import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageMetadata;
@@ -53,21 +51,16 @@ import com.google.mlkit.vision.face.FaceDetectorOptions;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 
 public class UserAccountActivity extends AppCompatActivity {
     private ImageView userImageView;
     private Button buttonSavePhoto;
     private Button buttonChoosePhoto;
-    private Button buttonRecognize;
     private Uri imageUri;
     private Bitmap input;
     private Canvas canvas;
-    private boolean registerFace;
     private FirebaseStorage storage = FirebaseStorage.getInstance();
     private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
 
@@ -110,20 +103,11 @@ public class UserAccountActivity extends AppCompatActivity {
         userImageView = findViewById(R.id.userImage);
         buttonSavePhoto = findViewById(R.id.buttonSavePhoto);
         buttonChoosePhoto = findViewById(R.id.buttonChoosePhoto);
-//        buttonRecognize = findViewById(R.id.buttonRecognize);
-
-//        buttonRecognize.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                getContent.launch("image/*");
-//            }
-//        });
 
         buttonChoosePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 getContent.launch("image/*");
-                registerFace = true;
             }
         });
 
@@ -137,9 +121,6 @@ public class UserAccountActivity extends AppCompatActivity {
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                // User clicked Yes, proceed with saving
-                                faceClassifier.registerDb(user.getDisplayName(), recognition, UserAccountActivity.this);
-
                                 // Save image to storage and then to Firestore
                                 uploadImageToFirebaseStorage();
 //                                finish();
@@ -163,7 +144,6 @@ public class UserAccountActivity extends AppCompatActivity {
                                 userImageView.setImageBitmap(input);
                                 buttonChoosePhoto.setVisibility(View.VISIBLE);
                                 buttonSavePhoto.setVisibility(View.GONE);
-                                registerFace = false;
                             }
                         })
                         .show();
@@ -197,28 +177,22 @@ public class UserAccountActivity extends AppCompatActivity {
                         p1.setStyle(Paint.Style.STROKE);
                         p1.setStrokeWidth(15);
 
-                        if (registerFace) {
-                            if (faces.size() == 1) {
-//                                Face face = faces.get(0);
-                                // Compute the embeddings, put into recognition
-                                performFaceRecognition(face.getBoundingBox(), bitmap);
-                                // Exactly one face detected, allow user to save the image
-                                buttonChoosePhoto.setVisibility(View.GONE);
-                                buttonSavePhoto.setVisibility(View.VISIBLE);
-                                buttonSavePhoto.setEnabled(true);
-                            } else {
-                                // Not exactly one face, show error or handle otherwise
-                                Toast.makeText(UserAccountActivity.this, "Please select an image with exactly one face.", Toast.LENGTH_LONG).show();
-                                // Optionally, you might want to reset to the initial state
-                                buttonChoosePhoto.setVisibility(View.VISIBLE);
-                                buttonSavePhoto.setVisibility(View.GONE);
-                                buttonSavePhoto.setEnabled(false);
-                                //                        userImageView.setImageBitmap(null);
-                            }
+                        if (faces.size() == 1) {
+                            // Compute the embeddings, put into recognition
+                            performFaceRecognition(face.getBoundingBox(), bitmap);
+                            // Exactly one face detected, allow user to save the image
+                            buttonChoosePhoto.setVisibility(View.GONE);
+                            buttonSavePhoto.setVisibility(View.VISIBLE);
+                            buttonSavePhoto.setEnabled(true);
+                        } else {
+                            // Not exactly one face, show error or handle otherwise
+                            Toast.makeText(UserAccountActivity.this, "Please select an image with exactly one face.", Toast.LENGTH_LONG).show();
+                            // Optionally, you might want to reset to the initial state
+                            buttonChoosePhoto.setVisibility(View.VISIBLE);
+                            buttonSavePhoto.setVisibility(View.GONE);
+                            buttonSavePhoto.setEnabled(false);
                         }
-                        else {
-                            performFaceRecognition(bounds, bitmap);
-                        }
+
                         canvas.drawRect(bounds, p1);
                     }
                     userImageView.setImageBitmap(mutableBmp);
@@ -232,6 +206,8 @@ public class UserAccountActivity extends AppCompatActivity {
 
     private void uploadImageToFirebaseStorage() {
         if (user != null && imageUri != null) {
+            faceClassifier.registerDb(user.getDisplayName(), recognition, UserAccountActivity.this);
+
             String fileName = "profileImages/" + System.currentTimeMillis() + "." + getFileExtension(imageUri);
             StorageReference storageReference = storage.getReference();
             StorageReference fileReference = storageReference.child(fileName);
@@ -311,23 +287,7 @@ public class UserAccountActivity extends AppCompatActivity {
         croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
         recognition = faceClassifier.recognizeImageRec(croppedFace, true);
         Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
-        // Call upload method here with embedding data
-//        uploadImageToFirebaseStorage(recognition);
 
-        // excel attendance export
-        if (!registerFace) {
-            if (recognition != null) {
-                Log.d("FaceRecognition", recognition.getTitle() + "   " + recognition.getDistance());
-                Paint p1 = new Paint();
-                p1.setColor(Color.WHITE);
-                p1.setTextSize(35);
-                if (recognition.getDistance() < 1) {
-                    canvas.drawText(recognition.getTitle(), bound.left, bound.top, p1);
-                } else {
-                    canvas.drawText("Unknown", bound.left, bound.top, p1);
-                }
-            }
-        }
     }
 
     @SuppressLint("Range")
@@ -359,18 +319,5 @@ public class UserAccountActivity extends AppCompatActivity {
         return  null;
     }
 
-    private String convertEmbeddingsToString(float[][] embeddings) {
-        if (embeddings == null || embeddings.length == 0) return "[]";
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (int i = 0; i < embeddings.length; i++) {
-            sb.append(Arrays.toString(embeddings[i]));
-            if (i < embeddings.length - 1) {
-                sb.append(", ");
-            }
-        }
-        sb.append("]");
-        return sb.toString();
-    }
 
 }
