@@ -244,7 +244,8 @@ public class RegisterActivityMine extends AppCompatActivity {
 //        imageView.setImageBitmap(croppedFace);
         // CHANGE MODEL
         croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
-        FaceClassifier.Recognition recognition = faceClassifier.recognizeImageRec(croppedFace, true);
+        //recognizeImageRec was before
+        FaceClassifier.Recognition recognition = faceClassifier.recognizeImage(croppedFace, true);
 //        Log.d("RegisterActivity", recognition.toString());
 //        showRegisterDialogue(croppedFace, recognition);
         Log.d("INSIDE REGISTER", "Recognition object value " + recognition);

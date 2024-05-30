@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -43,6 +44,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageMetadata;
 import com.google.firebase.storage.StorageReference;
+import com.google.gson.Gson;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceDetection;
@@ -77,23 +79,28 @@ public class UserAccountActivity extends AppCompatActivity {
     FaceClassifier.Recognition recognition;
 
     // Define an ActivityResultLauncher
-    private ActivityResultLauncher<String> getContent = registerForActivityResult(
-            new ActivityResultContracts.GetContent(),
-            new ActivityResultCallback<Uri>() {
-                @Override
-                public void onActivityResult(Uri uri) {
-                    // Handle the returned Uri
-                    if (uri != null) {
-                        imageUri = uri;
-                        input = uriToBitmap(imageUri);
-                        input = rotateBitmap(input);
-                        userImageView.setImageBitmap(input);
+    // Define an ActivityResultLauncher for Intent
+    private ActivityResultLauncher<Intent> getContent = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null) {
+                        Uri uri = data.getData();
+                        if (uri != null) {
+                            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            imageUri = uri;
+                            input = uriToBitmap(imageUri);
+                            input = rotateBitmap(input);
+                            userImageView.setImageBitmap(input);
 
-                        // save button becomes visible if only one face detected in photo
-                        detectSingleFace(input);
+                            // save button becomes visible if only one face detected in photo
+                            detectSingleFace(input);
+                        }
                     }
                 }
             });
+
 
 
     @Override
@@ -107,7 +114,7 @@ public class UserAccountActivity extends AppCompatActivity {
         buttonChoosePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getContent.launch("image/*");
+                openFileChooser();
             }
         });
 
@@ -122,8 +129,20 @@ public class UserAccountActivity extends AppCompatActivity {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 // Save image to storage and then to Firestore
-                                uploadImageToFirebaseStorage();
+//                                uploadImageToFirebaseStorage();
 //                                finish();
+                                // Pass data back to RegisterStudentActivity
+                                Intent resultIntent = new Intent();
+                                resultIntent.putExtra("imageUri", imageUri.toString());
+
+                                // Serialize Recognition object to JSON
+                                Gson gson = new Gson();
+                                String recognitionJson = gson.toJson(recognition);
+                                resultIntent.putExtra("recognition", recognitionJson);
+
+                                resultIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                setResult(Activity.RESULT_OK, resultIntent);
+                                finish();
                             }
                         })
                         .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -163,6 +182,16 @@ public class UserAccountActivity extends AppCompatActivity {
 
     }
 
+    private void openFileChooser() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        getContent.launch(intent);
+    }
+
+
     private void detectSingleFace(Bitmap bitmap) {
         // to be able to draw on the image
         Bitmap mutableBmp = bitmap.copy(Bitmap.Config.ARGB_8888, true);
@@ -181,9 +210,9 @@ public class UserAccountActivity extends AppCompatActivity {
                             // Compute the embeddings, put into recognition
                             performFaceRecognition(face.getBoundingBox(), bitmap);
                             // Exactly one face detected, allow user to save the image
-                            buttonChoosePhoto.setVisibility(View.GONE);
-                            buttonSavePhoto.setVisibility(View.VISIBLE);
-                            buttonSavePhoto.setEnabled(true);
+//                            buttonChoosePhoto.setVisibility(View.GONE);
+//                            buttonSavePhoto.setVisibility(View.VISIBLE);
+//                            buttonSavePhoto.setEnabled(true);
                         } else {
                             // Not exactly one face, show error or handle otherwise
                             Toast.makeText(UserAccountActivity.this, "Please select an image with exactly one face.", Toast.LENGTH_LONG).show();
@@ -285,7 +314,13 @@ public class UserAccountActivity extends AppCompatActivity {
         Bitmap croppedFace = Bitmap.createBitmap(input, bound.left, bound.top, bound.width(), bound.height());
         // CHANGE MODEL
         croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
-        recognition = faceClassifier.recognizeImageRec(croppedFace, true);
+        recognition = faceClassifier.recognizeImageRec(this, croppedFace, true);
+
+        if (recognition != null) {
+            buttonChoosePhoto.setVisibility(View.GONE);
+            buttonSavePhoto.setVisibility(View.VISIBLE);
+            buttonSavePhoto.setEnabled(true);
+        }
         Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
 
     }

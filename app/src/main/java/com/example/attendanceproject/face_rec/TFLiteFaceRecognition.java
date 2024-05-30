@@ -13,11 +13,13 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
+import com.example.attendanceproject.account.auth.UserAccountActivity;
 import com.example.attendanceproject.imagepicker.MainActivity2;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageMetadata;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.gson.Gson;
@@ -84,67 +86,123 @@ public class TFLiteFaceRecognition
         MainActivity2.registered.put(name, rec);
     }
 
+//    public void registerDb(String name, Recognition rec, Context context) {
+//        registered.put(name, rec);
+//
+//        byte[] bytes=null;
+//        try {
+//            //write the bytes in file
+//            {
+//                Gson gson = new Gson();
+//
+//
+//                File localFile = new File(context.getFilesDir(), FileName);
+//                FileOutputStream fileOutputStream = new FileOutputStream(localFile);
+//
+//                Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
+//                String toStoreObject = gson.toJson(registered,type);
+//
+//                ObjectOutputStream o = new ObjectOutputStream(fileOutputStream);
+//                o.writeObject(toStoreObject);
+//                Log.d("REGISTER", "Embedding name " + name + " has been registered");
+//
+//                o.close();
+//
+//                fileOutputStream.close();
+//
+//                Toast.makeText(context, "save file completed.", Toast.LENGTH_LONG ).show();
+//
+//            }
+//
+//            FirebaseStorage storage = FirebaseStorage.getInstance();
+//            StorageReference storageRef = storage.getReference();
+//            StorageReference test2 = storageRef.child(FileName);
+//
+//            Uri file = Uri.fromFile(new File(context.getFilesDir(),FileName));
+//
+//
+//            test2.putFile(file)
+//                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+//                        @Override
+//                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+//                            Toast.makeText(context, "Upload Completed.", Toast.LENGTH_LONG ).show();
+//
+//                        }
+//                    })
+//                    .addOnFailureListener(new OnFailureListener() {
+//                        @Override
+//                        public void onFailure(@NonNull Exception exception) {
+//                            // Handle unsuccessful uploads
+//                            // ...
+//                            Toast.makeText(context, "Upload Failure.", Toast.LENGTH_LONG ).show();
+//                        }
+//                    });
+//
+//
+//        }catch (Exception e){
+//
+//
+//            Log.d("Clique AQUI","Clique AQUI file created: " + e.toString());
+//            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG ).show();
+//
+//        }
+//    }
+
     public void registerDb(String name, Recognition rec, Context context) {
         registered.put(name, rec);
 
-        byte[] bytes=null;
         try {
-            //write the bytes in file
-            {
-                Gson gson = new Gson();
+            // Write the bytes to file
+            Gson gson = new Gson();
+            File localFile = new File(context.getFilesDir(), FileName);
 
-
-                File localFile = new File(context.getFilesDir(), FileName);
-                FileOutputStream fileOutputStream = new FileOutputStream(localFile);
-
-                Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
-                String toStoreObject = gson.toJson(registered,type);
-
-                ObjectOutputStream o = new ObjectOutputStream(fileOutputStream);
-                o.writeObject(toStoreObject);
-                Log.d("REGISTER", "Embedding name " + name + " has been registered");
-
-                o.close();
-
-                fileOutputStream.close();
-
-                Toast.makeText(context, "save file completed.", Toast.LENGTH_LONG ).show();
-
+            // Ensure the directory exists
+            if (!localFile.getParentFile().exists()) {
+                localFile.getParentFile().mkdirs();
             }
 
-            FirebaseStorage storage = FirebaseStorage.getInstance();
-            StorageReference storageRef = storage.getReference();
-            StorageReference test2 = storageRef.child(FileName);
+            // Write object to file
+            FileOutputStream fileOutputStream = new FileOutputStream(localFile);
+            Type type = new TypeToken<HashMap<String, Recognition>>() {}.getType();
+            String toStoreObject = gson.toJson(registered, type);
+            ObjectOutputStream o = new ObjectOutputStream(fileOutputStream);
+            o.writeObject(toStoreObject);
+            o.close();
+            fileOutputStream.close();
 
-            Uri file = Uri.fromFile(new File(context.getFilesDir(),FileName));
+            Log.d("REGISTER", "Embedding name " + name + " has been registered");
+            Toast.makeText(context, "Save file completed.", Toast.LENGTH_LONG).show();
 
+            // Ensure the file exists
+            if (localFile.exists()) {
+                Log.d("REGISTER", "File created at: " + localFile.getAbsolutePath());
 
-            test2.putFile(file)
-                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                        @Override
-                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                            Toast.makeText(context, "Upload Completed.", Toast.LENGTH_LONG ).show();
+                // Upload file to Firebase Storage
+                FirebaseStorage storage = FirebaseStorage.getInstance();
+                StorageReference storageRef = storage.getReference();
+                StorageReference test2 = storageRef.child(FileName);
+                Uri fileUri = Uri.fromFile(localFile);
 
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception exception) {
-                            // Handle unsuccessful uploads
-                            // ...
-                            Toast.makeText(context, "Upload Failure.", Toast.LENGTH_LONG ).show();
-                        }
-                    });
+                test2.putFile(fileUri)
+                        .addOnSuccessListener(taskSnapshot -> {
+                            Log.d("UPLOAD", "Upload successful");
+                            Toast.makeText(context, "Upload Completed.", Toast.LENGTH_LONG).show();
+                        })
+                        .addOnFailureListener(exception -> {
+                            Log.e("UPLOAD", "Upload failed: " + exception.getMessage(), exception);
+                            Toast.makeText(context, "Upload Failure.", Toast.LENGTH_LONG).show();
+                        });
+            } else {
+                Log.e("FILE", "File does not exist: " + localFile.getAbsolutePath());
+                Toast.makeText(context, "File does not exist.", Toast.LENGTH_LONG).show();
+            }
 
-
-        }catch (Exception e){
-
-
-            Log.d("Clique AQUI","Clique AQUI file created: " + e.toString());
-            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG ).show();
-
+        } catch (Exception e) {
+            Log.e("ERROR", "Exception occurred: " + e.toString(), e);
+            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
+
 
     public void registerMul(String name, Recognition rec) {
         if (MainActivity2.registered.containsKey(name)) {
@@ -227,60 +285,77 @@ public class TFLiteFaceRecognition
             final String modelFilename,
             final int inputSize,
             final boolean isQuantized,
-            Context context)
-            throws IOException {
+            Context context) throws IOException {
 
         final TFLiteFaceRecognition d = new TFLiteFaceRecognition();
 
         try {
             FirebaseStorage storage = FirebaseStorage.getInstance();
             StorageReference storageRef = storage.getReference();
-            StorageReference test2 = storageRef.child(FileName);
+            StorageReference test2 = storageRef.child(FileName); // Update this path
 
-            File localFile = File.createTempFile("Student", "txt");
-            test2.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+            // Check if file exists before attempting to download
+            test2.getMetadata().addOnSuccessListener(new OnSuccessListener<StorageMetadata>() {
                 @Override
-                public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                public void onSuccess(StorageMetadata storageMetadata) {
+                    // File exists, proceed with downloading
                     try {
-                        Gson gson = new Gson();
-                        ObjectInputStream i = new ObjectInputStream(new FileInputStream(localFile));
+                        final File localFile = File.createTempFile("Student", "txt");
 
-                        Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
-                        HashMap<String, Recognition> registeredDb = gson.fromJson((String)i.readObject(), type);
-                        i.close();
+                        test2.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                            @Override
+                            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                                try {
+                                    Gson gson = new Gson();
+                                    ObjectInputStream i = new ObjectInputStream(new FileInputStream(localFile));
+                                    Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
+                                    HashMap<String, Recognition> registeredDb = gson.fromJson((String)i.readObject(), type);
+                                    i.close();
 
-                        // Check if the map is not empty
-                        if (registeredDb != null && !registeredDb.isEmpty()){
-                            d.registered = registeredDb;
-                            // Logging each key-value pair
-                            for (Map.Entry<String, Recognition> entry : registeredDb.entrySet()) {
-                                Log.d("REGISTERED_DB", "Key: " + entry.getKey() + ", Value: " + entry.getValue().toString());
+                                    // Check if the map is not empty
+                                    if (registeredDb != null && !registeredDb.isEmpty()) {
+                                        d.registered = registeredDb;
+                                        // Logging each key-value pair
+                                        for (Map.Entry<String, Recognition> entry : registeredDb.entrySet()) {
+                                            Log.d("REGISTERED_DB", "Key: " + entry.getKey() + ", Value: " + entry.getValue().toString());
+                                        }
+                                    } else {
+                                        Log.d("REGISTERED_DB", "The registered database is empty or null.");
+                                    }
+
+                                    Toast.makeText(context, "Content embeddings read", Toast.LENGTH_LONG).show();
+
+                                } catch (Exception e) {
+                                    Log.d("REGISTERED_DB_EXCEPTION", "Exception when reading and processing file: " + e.toString());
+                                    Toast.makeText(context, "Exception 1: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
                             }
-                        } else {
-                            Log.d("REGISTERED_DB", "The registered database is empty or null.");
-                        }
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception exception) {
+                                Log.d("DOWNLOAD_FAILURE", "Error downloading file: " + exception.toString());
+                                Toast.makeText(context, "Exception 2: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        });
 
-                        Toast.makeText(context, "Content embeddings read", Toast.LENGTH_LONG ).show();
-
-                    } catch (Exception e) {
-                        Log.d("REGISTERED_DB_EXCEPTION", "Exception when reading and processing file: " + e.toString());
-                        Toast.makeText(context, "Exception 1" + e.getMessage(), Toast.LENGTH_LONG ).show();
+                    } catch (IOException e) {
+                        Log.d("FILE_CREATION_ERROR", "Error creating temp file: " + e.toString());
+                        Toast.makeText(context, "Error creating temp file", Toast.LENGTH_LONG).show();
                     }
                 }
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception exception) {
-                    Log.d("DOWNLOAD_FAILURE", "Error downloading file: " + exception.toString());
-                    Toast.makeText(context, "Exception 2 " + exception.getMessage(), Toast.LENGTH_LONG ).show();
+                    // File does not exist, handle this case
+                    Log.d("FILE_NOT_FOUND", "File does not exist: " + exception.toString());
+                    Toast.makeText(context, "File not found.", Toast.LENGTH_LONG).show();
+
                 }
             });
 
-
         } catch (Exception e) {
-
             Log.d("Clique AQUI", "Clique AQUI file created: " + e.toString());
         }
-
 
         d.inputSize = inputSize;
 
@@ -303,6 +378,9 @@ public class TFLiteFaceRecognition
         d.intValues = new int[d.inputSize * d.inputSize];
         return d;
     }
+
+
+
     public static FaceClassifier create(
             final AssetManager assetManager,
             final String modelFilename,
@@ -410,7 +488,7 @@ public class TFLiteFaceRecognition
     //TAKE INPUT IMAGE AND RETURN RECOGNITIONS
     // bitmap = crop
     @Override
-    public Recognition recognizeImageRec(final Bitmap bitmap, boolean storeExtra) {
+    public Recognition recognizeImageRec(Context context, final Bitmap bitmap, boolean storeExtra) {
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         imgData.rewind();
         for (int i = 0; i < inputSize; ++i) {
@@ -444,6 +522,7 @@ public class TFLiteFaceRecognition
         String id = "0";
         String label = "?";
 
+        // if we don't intend to save the new face, means we perform recognition
         if (registered.size() > 0) {
             Log.d("FROM DB", "dataset SIZE: " + registered.size());
             // looks for the nearest neighbour
@@ -459,6 +538,7 @@ public class TFLiteFaceRecognition
 
 
         final int numDetectionsOutput = 1;
+        // label = title
         Recognition rec = new Recognition(
                 id,
                 label,
@@ -467,8 +547,19 @@ public class TFLiteFaceRecognition
 
 
         // storeExtra bool true = new face to add
+//        if (storeExtra && distance > 1) {
+//            rec.setEmbedding(embeddings);
+//        }
+//        if (storeExtra && distance < 1) {
+//            Toast.makeText(context, "This face is already registered with name " + label, Toast.LENGTH_SHORT).show();
+//            label = "?";
+//            return null;
+//        }
+
+        // storeExtra bool true = new face to add
         if (storeExtra) {
             rec.setEmbedding(embeddings);
+
         }
 
         return rec;

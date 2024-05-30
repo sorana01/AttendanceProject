@@ -252,7 +252,8 @@ public class RecognitionActivity extends AppCompatActivity {
 //        imageView.setImageBitmap(croppedFace);
         // CHANGE MODEL
         croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
-        FaceClassifier.Recognition recognition = faceClassifier.recognizeImageRec(croppedFace, false);
+        // recognizeImageRec was before
+        FaceClassifier.Recognition recognition = faceClassifier.recognizeImage(croppedFace, false);
 
         if (recognition != null) {
             Log.d("FaceRecognition", recognition.getTitle() + "   " + recognition.getDistance());
