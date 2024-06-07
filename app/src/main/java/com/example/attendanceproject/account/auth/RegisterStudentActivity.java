@@ -6,12 +6,23 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.webkit.MimeTypeMap;
@@ -19,6 +30,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
+
 import com.example.attendanceproject.R;
 import com.example.attendanceproject.face_rec.FaceClassifier;
 import com.example.attendanceproject.face_rec.TFLiteFaceRecognition;
@@ -35,29 +47,43 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageMetadata;
 import com.google.firebase.storage.StorageReference;
 import com.google.gson.Gson;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.face.FaceDetection;
+import com.google.mlkit.vision.face.FaceDetector;
+import com.google.mlkit.vision.face.FaceDetectorOptions;
 
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class RegisterStudentActivity extends AppCompatActivity {
+    private static final int MY_PERMISSIONS_REQUEST_READ_MEDIA_IMAGES = 101;  // Arbitrary number, unique to this request
     private EditText fullNameEditText, emailEditText, passwordEditText, confirmPasswordEditText, phoneEditText;
     private EditText studentIdEditText, cnpEditText;
     private Button registerButton, goToLoginButton, uploadPhotoButton, chooseAnotherPhotoButton;
     private ImageView chosenPhotoImageView;
+    private Bitmap input;
 
     private Uri imageUri;
     private String recognitionJson;
+    private boolean oneFace;
 
     private FirebaseStorage storage = FirebaseStorage.getInstance();
     private FirebaseAuth fAuth;
     private FirebaseUser user;
     private FirebaseFirestore fStore;
-    private FaceClassifier faceClassifier;
-    private FaceClassifier.Recognition recognition;
-    private ActivityResultLauncher<Intent> userAccountActivityResultLauncher;
-    private static final int PICK_IMAGE_REQUEST = 1;
+    private ActivityResultLauncher<Intent> pickImageLauncher;
+    FaceDetectorOptions highAccuracyOpts =
+            new FaceDetectorOptions.Builder()
+                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                    .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+                    .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+                    .build();
+    FaceDetector detector;
 
 
 
@@ -68,6 +94,8 @@ public class RegisterStudentActivity extends AppCompatActivity {
 
         fAuth = FirebaseAuth.getInstance();
         fStore = FirebaseFirestore.getInstance();
+        detector = FaceDetection.getClient(highAccuracyOpts);
+
 
         fullNameEditText = findViewById(R.id.registerName);
         emailEditText = findViewById(R.id.registerEmail);
@@ -82,43 +110,24 @@ public class RegisterStudentActivity extends AppCompatActivity {
         chooseAnotherPhotoButton = findViewById(R.id.chooseAnotherPhotoButton);
         chosenPhotoImageView = findViewById(R.id.chosenPhotoImageView);
 
-//        try {
-//            // CHANGE MODEL
-//            faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, this);
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
 
-        userAccountActivityResultLauncher = registerForActivityResult(
+        // Initialize the launcher
+        pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        Intent data = result.getData();
-                        if (data != null) {
-                            String imageUriString = data.getStringExtra("imageUri");
-                            recognitionJson = data.getStringExtra("recognition");
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri selectedImageUri = result.getData().getData();
+                        if (selectedImageUri != null) {
+                            imageUri = selectedImageUri;
+                            input = uriToBitmap(imageUri);
+                            input = rotateBitmap(input);
+                            chosenPhotoImageView.setImageBitmap(input);
+                            uploadPhotoButton.setVisibility(View.GONE);
+                            chosenPhotoImageView.setVisibility(View.VISIBLE);
+                            chooseAnotherPhotoButton.setVisibility(View.VISIBLE);
 
-                            if (imageUriString != null) {
-                                imageUri = Uri.parse(imageUriString);
-                                getContentResolver().takePersistableUriPermission(imageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                                // Load image into ImageView (use a library like Glide or Picasso)
-                                chosenPhotoImageView.setImageURI(imageUri);
-                                uploadPhotoButton.setVisibility(View.GONE);
-                                chooseAnotherPhotoButton.setVisibility(View.VISIBLE);
-                                chosenPhotoImageView.setVisibility(View.VISIBLE);
-
-                                updateConstraints();
-                            }
-
-                            if (recognitionJson != null) {
-                                // Deserialize JSON back into Recognition object
-                                Gson gson = new Gson();
-                                Type type = new TypeToken<FaceClassifier.Recognition>(){}.getType();
-                                recognition = gson.fromJson(recognitionJson, type);
-                            }
-
-                            Log.d("RECEIVED", "Data from UserAccountActivity: recognition" + recognition +" imageuri " + imageUri);
+                            updateConstraints();
+                            detectSingleFace(input);
                         }
                     }
                 }
@@ -127,31 +136,34 @@ public class RegisterStudentActivity extends AppCompatActivity {
         uploadPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(RegisterStudentActivity.this, UserAccountActivity.class);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                userAccountActivityResultLauncher.launch(intent);
+                handlePhotoUpload();
             }
         });
 
         chooseAnotherPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(RegisterStudentActivity.this, UserAccountActivity.class);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                userAccountActivityResultLauncher.launch(intent);            }
+                handlePhotoUpload();
+            }
         });
 
         registerButton.setOnClickListener(view -> {
-            boolean valid = imageUri != null && emptyField(fullNameEditText) && emptyField(emailEditText) && emptyField(passwordEditText) && emptyField(phoneEditText) && emptyField(cnpEditText) && emptyField(studentIdEditText);
+            boolean valid = !(emptyField(fullNameEditText) && emptyField(emailEditText) && emptyField(phoneEditText) && emptyField(cnpEditText) && emptyField(studentIdEditText) && emptyField(passwordEditText) && emptyField(confirmPasswordEditText));
 
-            if (valid) {
-                if (passwordEditText.getText().toString().equals(confirmPasswordEditText.getText().toString())) {
-                    checkPhoneNumberAndRegister();
-                } else {
-                    confirmPasswordEditText.setError("Passwords have to match");
+            if (valid && passwordEditText.getText().toString().equals(confirmPasswordEditText.getText().toString())) {
+                if (imageUri != null) {
+                    if (oneFace) {
+                        checkPhoneNumberAndRegister();
+                    }
+                    else {
+                        Toast.makeText(RegisterStudentActivity.this, "You must upload a picture alone!", Toast.LENGTH_SHORT).show();
+                    }
                 }
-            } else if (imageUri == null) {
-                Toast.makeText(RegisterStudentActivity.this, "You must upload a photo of yourself!", Toast.LENGTH_SHORT).show();
+                else {
+                    Toast.makeText(RegisterStudentActivity.this, "You must upload a picture!", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                confirmPasswordEditText.setError("Passwords have to match");
             }
         });
 
@@ -161,6 +173,54 @@ public class RegisterStudentActivity extends AppCompatActivity {
                 startActivity(new Intent(getApplicationContext(), LoginUserActivity.class));
             }
         });
+    }
+
+    // Override onRequestPermissionsResult to handle the callback
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MY_PERMISSIONS_REQUEST_READ_MEDIA_IMAGES) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);  // Ensure permission flags are correctly set
+                pickImageLauncher.launch(intent);
+            } else {
+                Toast.makeText(RegisterStudentActivity.this, "Permission denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void handlePhotoUpload() {
+        if (ContextCompat.checkSelfPermission(RegisterStudentActivity.this, Manifest.permission.READ_MEDIA_IMAGES)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(RegisterStudentActivity.this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    MY_PERMISSIONS_REQUEST_READ_MEDIA_IMAGES);
+        } else {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);  // Ensure permission flags are correctly set
+            pickImageLauncher.launch(intent);
+        }
+    }
+
+    private void detectSingleFace(Bitmap bitmap) {
+        InputImage image = InputImage.fromBitmap(bitmap, 0);
+
+        // Detect faces in the image
+        detector.process(image)
+                .addOnSuccessListener(faces -> {
+                    if (faces.size() == 1) {
+                        oneFace = true;
+                    } else {
+                        oneFace = false;
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(RegisterStudentActivity.this, "Failed to detect faces: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+
     }
 
     private void checkPhoneNumberAndRegister() {
@@ -240,10 +300,6 @@ public class RegisterStudentActivity extends AppCompatActivity {
         userInfo.put("isStudent", true);
         userInfo.put("isApproved", "pending");
 
-        // Directly use the received recognition JSON
-        if (recognitionJson != null) {
-            userInfo.put("Recognition", recognitionJson);
-        }
 
         // Upload image to Firebase Storage if imageUri is not null
         if (imageUri != null) {
@@ -277,8 +333,6 @@ public class RegisterStudentActivity extends AppCompatActivity {
 
     private void saveUserInfoToFirestore(Map<String, Object> userInfo) {
         DocumentReference df = fStore.collection("Users").document(user.getUid());
-//        faceClassifier.registerDb(fullNameEditText.getText().toString(), recognition, RegisterStudentActivity.this);
-
         df.set(userInfo)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(RegisterStudentActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
@@ -289,59 +343,33 @@ public class RegisterStudentActivity extends AppCompatActivity {
     }
 
 
-    private void uploadImageToFirebaseStorage() {
-        if (recognition != null && imageUri != null) {
-            faceClassifier.registerDb(fullNameEditText.getText().toString(), recognition, RegisterStudentActivity.this);
-
-            String fileName = "profileImages/" + System.currentTimeMillis() + "." + getFileExtension(imageUri);
-            StorageReference storageReference = storage.getReference();
-            StorageReference fileReference = storageReference.child(fileName);
-
-            // Set custom metadata
-            StorageMetadata metadata = new StorageMetadata.Builder()
-                    .setCustomMetadata("fullName", user.getDisplayName())
-                    .build();
-
-            fileReference.putFile(imageUri, metadata)
-                    .addOnSuccessListener(taskSnapshot -> fileReference.getDownloadUrl().addOnSuccessListener(uri -> {
-                        String downloadUrl = uri.toString();
-                        saveImageDetailsToFirestore(downloadUrl, fileName);  // Save other details to Firestore as needed
-
-                    }))
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(RegisterStudentActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
-        } else {
-            Log.d("Recognition save error", "Recognition " + recognition + " image uri " + imageUri);
-            Toast.makeText(this, "No file selected", Toast.LENGTH_SHORT).show();
+    private Bitmap uriToBitmap(Uri selectedFileUri) {
+        try {
+            ParcelFileDescriptor parcelFileDescriptor =
+                    getContentResolver().openFileDescriptor(selectedFileUri, "r");
+            FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+            Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor);
+            parcelFileDescriptor.close();
+            return image;
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        return  null;
     }
 
-    private void saveImageDetailsToFirestore(String imageUrl, String fileName) {
-        if (user != null) {
-            DocumentReference df = fStore.collection("Users").document(user.getUid());
-            Map<String, Object> imageData = new HashMap<>();
-            imageData.put("imageUrl", imageUrl);
-            imageData.put("fileName", fileName);
-
-            // Use update instead of set to keep other fields unchanged
-            df.update(imageData)
-                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            Log.d("Firestore", "Document successfully updated!");
-                            setResult(Activity.RESULT_OK);  // Set the result as OK
-                            finish();  // Finish this activity only after successful Firestore update
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.w("Firestore", "Error updating document", e);
-                            Toast.makeText(RegisterStudentActivity.this, "Failed to update Firestore. Please try again!", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+    @SuppressLint("Range")
+    public Bitmap rotateBitmap(Bitmap input){
+        String[] orientationColumn = {MediaStore.Images.Media.ORIENTATION};
+        Cursor cur = getContentResolver().query(imageUri, orientationColumn, null, null, null);
+        int orientation = -1;
+        if (cur != null && cur.moveToFirst()) {
+            orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
         }
+        Log.d("tryOrientation",orientation+"");
+        Matrix rotationMatrix = new Matrix();
+        rotationMatrix.setRotate(orientation);
+        Bitmap rotatedBitmap = Bitmap.createBitmap(input,0,0, input.getWidth(), input.getHeight(), rotationMatrix, true);
+        return rotatedBitmap;
     }
 
     private String getFileExtension(Uri uri) {
@@ -354,9 +382,9 @@ public class RegisterStudentActivity extends AppCompatActivity {
     public boolean emptyField(EditText textField) {
         if (textField.getText().toString().isEmpty()) {
             textField.setError("This field cannot be empty");
-            return false;
-        } else {
             return true;
+        } else {
+            return false;
         }
     }
 }
