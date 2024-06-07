@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
@@ -40,18 +41,8 @@
             android:value="@string/facebook_client_token" />
         <meta-data
             android:name="com.facebook.sdk.ApplicationProtocolScheme"
-            android:value="@string/facebook_login_protocol_scheme" /> <!-- Declare FirebaseUIActivity here and make it the start activity -->
-        <activity
-            android:name=".FirebaseUIActivity"
-            android:exported="true">
+            android:value="@string/facebook_login_protocol_scheme" />
 
-            <!-- Intent filter to catch MAIN action and LAUNCHER category -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
         <activity
             android:name=".account.teacher.RecognizeActivity"
             android:exported="false" />
@@ -77,15 +68,6 @@
         <activity
             android:name=".account.student.StudentActivity"
             android:exported="false" />
-        <activity
-            android:name=".account.auth.UserAccountActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
         <activity
             android:name=".imagepicker.MainActivity2"
             android:exported="true">
