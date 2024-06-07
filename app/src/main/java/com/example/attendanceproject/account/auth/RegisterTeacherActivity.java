@@ -25,7 +25,7 @@ import java.util.Map;
 public class RegisterTeacherActivity extends AppCompatActivity {
     private EditText fullNameEditText, emailEditText, passwordEditText, confirmPasswordEditText, phoneEditText;
     private Button registerButton, goToLoginButton;
-
+    private FirebaseUser user;
     private FirebaseAuth fAuth;
     private FirebaseFirestore fStore;
 
@@ -52,47 +52,17 @@ public class RegisterTeacherActivity extends AppCompatActivity {
 
                 if (valid) {
                     if (passwordEditText.getText().toString().equals(confirmPasswordEditText.getText().toString())) {
-                        fAuth.createUserWithEmailAndPassword(emailEditText.getText().toString(), passwordEditText.getText().toString()).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
-                            @Override
-                            public void onSuccess(AuthResult authResult) {
-                                FirebaseUser user = fAuth.getCurrentUser();
-                                if (user != null) {
-                                    UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
-                                            .setDisplayName(fullNameEditText.getText().toString())
-                                            .build();
-
-                                    user.updateProfile(profileUpdates)
-                                            .addOnCompleteListener(task -> {
-                                                if (task.isSuccessful()) {
-                                                    Log.d("Profile Update", "User profile updated with display name.");
-                                                }
-                                            });
-
-                                    DocumentReference df = fStore.collection("Users").document(user.getUid());
-                                    Map<String, Object> userInfo = new HashMap<>();
-                                    userInfo.put("FullName", fullNameEditText.getText().toString());
-                                    userInfo.put("UserEmail", emailEditText.getText().toString());
-                                    userInfo.put("PhoneNumber", phoneEditText.getText().toString());
-                                    userInfo.put("isTeacher", true);
-                                    userInfo.put("isApproved", "pending");
-
-                                    df.set(userInfo).addOnSuccessListener(aVoid -> {
-                                        Toast.makeText(RegisterTeacherActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
-                                    }).addOnFailureListener(e -> {
-                                        Log.e("Firestore Save Error", "Failed to save user data", e);
-                                    });
-                                }
-
-                                startActivity(new Intent(getApplicationContext(), LoginUserActivity.class));
-                                finish();
-                            }
-                        }).addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(RegisterTeacherActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                Log.e("Firestore Save Error", "Failed to save user data", e);
-                            }
-                        });
+                        String phoneNumber = phoneEditText.getText().toString();
+                        fStore.collection("Users")
+                                .whereEqualTo("PhoneNumber", phoneNumber)
+                                .get()
+                                .addOnCompleteListener(task -> {
+                                    if (task.isSuccessful() && task.getResult() != null && !task.getResult().isEmpty()) {
+                                        Toast.makeText(RegisterTeacherActivity.this, "Phone number already registered.", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        registerNewUser();
+                                    }
+                                });
                     } else {
                         confirmPasswordEditText.setError("Passwords have to match");
                     }
@@ -107,6 +77,50 @@ public class RegisterTeacherActivity extends AppCompatActivity {
             }
         });
     }
+
+    private void registerNewUser() {
+        fAuth.createUserWithEmailAndPassword(emailEditText.getText().toString(), passwordEditText.getText().toString()).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+            @Override
+            public void onSuccess(AuthResult authResult) {
+                user = fAuth.getCurrentUser();
+                if (user != null) {
+                    UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                            .setDisplayName(fullNameEditText.getText().toString())
+                            .build();
+
+                    user.updateProfile(profileUpdates)
+                            .addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    Log.d("Profile Update", "User profile updated with display name.");
+                                }
+                            });
+
+                    DocumentReference df = fStore.collection("Users").document(user.getUid());
+                    Map<String, Object> userInfo = new HashMap<>();
+                    userInfo.put("FullName", fullNameEditText.getText().toString());
+                    userInfo.put("UserEmail", emailEditText.getText().toString());
+                    userInfo.put("PhoneNumber", phoneEditText.getText().toString());
+                    userInfo.put("isTeacher", true);
+                    userInfo.put("isApproved", "pending");
+
+                    df.set(userInfo).addOnSuccessListener(aVoid -> {
+                        Toast.makeText(RegisterTeacherActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
+                        startActivity(new Intent(getApplicationContext(), LoginUserActivity.class));
+                        finish();
+                    }).addOnFailureListener(e -> {
+                        Log.e("Firestore Save Error", "Failed to save user data", e);
+                    });
+                }
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(RegisterTeacherActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e("Register Error", "Failed to register user", e);
+            }
+        });
+    }
+
 
     public boolean emptyField(EditText textField) {
         if (textField.getText().toString().isEmpty()) {
