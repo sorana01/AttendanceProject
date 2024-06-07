@@ -13,8 +13,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
-import com.example.attendanceproject.account.auth.UserAccountActivity;
-import com.example.attendanceproject.imagepicker.MainActivity2;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.storage.FileDownloadTask;
@@ -38,10 +36,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class TFLiteFaceRecognition
@@ -74,193 +69,67 @@ public class TFLiteFaceRecognition
 
 
 
-    public void register(String name, Recognition rec) {
-//        Map<String, Recognition> recognitionMap = new HashMap<>();
-//
-//        for (Map.Entry<String, Recognition> entry : recognitionMap.entrySet()) {
-//            if (entry.getKey().equals(name)) {
-//                return;
-//            }
-//        }
-
-        MainActivity2.registered.put(name, rec);
-    }
-
-//    public void registerDb(String name, Recognition rec, Context context) {
-//        registered.put(name, rec);
-//
-//        byte[] bytes=null;
-//        try {
-//            //write the bytes in file
-//            {
-//                Gson gson = new Gson();
-//
-//
-//                File localFile = new File(context.getFilesDir(), FileName);
-//                FileOutputStream fileOutputStream = new FileOutputStream(localFile);
-//
-//                Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
-//                String toStoreObject = gson.toJson(registered,type);
-//
-//                ObjectOutputStream o = new ObjectOutputStream(fileOutputStream);
-//                o.writeObject(toStoreObject);
-//                Log.d("REGISTER", "Embedding name " + name + " has been registered");
-//
-//                o.close();
-//
-//                fileOutputStream.close();
-//
-//                Toast.makeText(context, "save file completed.", Toast.LENGTH_LONG ).show();
-//
-//            }
-//
-//            FirebaseStorage storage = FirebaseStorage.getInstance();
-//            StorageReference storageRef = storage.getReference();
-//            StorageReference test2 = storageRef.child(FileName);
-//
-//            Uri file = Uri.fromFile(new File(context.getFilesDir(),FileName));
-//
-//
-//            test2.putFile(file)
-//                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-//                        @Override
-//                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-//                            Toast.makeText(context, "Upload Completed.", Toast.LENGTH_LONG ).show();
-//
-//                        }
-//                    })
-//                    .addOnFailureListener(new OnFailureListener() {
-//                        @Override
-//                        public void onFailure(@NonNull Exception exception) {
-//                            // Handle unsuccessful uploads
-//                            // ...
-//                            Toast.makeText(context, "Upload Failure.", Toast.LENGTH_LONG ).show();
-//                        }
-//                    });
-//
-//
-//        }catch (Exception e){
-//
-//
-//            Log.d("Clique AQUI","Clique AQUI file created: " + e.toString());
-//            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG ).show();
-//
-//        }
-//    }
-
     public void registerDb(String name, Recognition rec, Context context) {
         registered.put(name, rec);
 
+        byte[] bytes=null;
         try {
-            // Write the bytes to file
-            Gson gson = new Gson();
-            File localFile = new File(context.getFilesDir(), FileName);
+            //write the bytes in file
+            {
+                Gson gson = new Gson();
 
-            // Ensure the directory exists
-            if (!localFile.getParentFile().exists()) {
-                localFile.getParentFile().mkdirs();
+
+                File localFile = new File(context.getFilesDir(), FileName);
+                FileOutputStream fileOutputStream = new FileOutputStream(localFile);
+
+                Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
+                String toStoreObject = gson.toJson(registered,type);
+
+                ObjectOutputStream o = new ObjectOutputStream(fileOutputStream);
+                o.writeObject(toStoreObject);
+                Log.d("REGISTER", "Embedding name " + name + " has been registered");
+
+                o.close();
+
+                fileOutputStream.close();
+
+                Toast.makeText(context, "save file completed.", Toast.LENGTH_LONG ).show();
+
             }
 
-            // Write object to file
-            FileOutputStream fileOutputStream = new FileOutputStream(localFile);
-            Type type = new TypeToken<HashMap<String, Recognition>>() {}.getType();
-            String toStoreObject = gson.toJson(registered, type);
-            ObjectOutputStream o = new ObjectOutputStream(fileOutputStream);
-            o.writeObject(toStoreObject);
-            o.close();
-            fileOutputStream.close();
+            FirebaseStorage storage = FirebaseStorage.getInstance();
+            StorageReference storageRef = storage.getReference();
+            StorageReference test2 = storageRef.child(FileName);
 
-            Log.d("REGISTER", "Embedding name " + name + " has been registered");
-            Toast.makeText(context, "Save file completed.", Toast.LENGTH_LONG).show();
+            Uri file = Uri.fromFile(new File(context.getFilesDir(),FileName));
 
-            // Ensure the file exists
-            if (localFile.exists()) {
-                Log.d("REGISTER", "File created at: " + localFile.getAbsolutePath());
 
-                // Upload file to Firebase Storage
-                FirebaseStorage storage = FirebaseStorage.getInstance();
-                StorageReference storageRef = storage.getReference();
-                StorageReference test2 = storageRef.child(FileName);
-                Uri fileUri = Uri.fromFile(localFile);
+            test2.putFile(file)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            Toast.makeText(context, "Upload Completed.", Toast.LENGTH_LONG ).show();
 
-                test2.putFile(fileUri)
-                        .addOnSuccessListener(taskSnapshot -> {
-                            Log.d("UPLOAD", "Upload successful");
-                            Toast.makeText(context, "Upload Completed.", Toast.LENGTH_LONG).show();
-                        })
-                        .addOnFailureListener(exception -> {
-                            Log.e("UPLOAD", "Upload failed: " + exception.getMessage(), exception);
-                            Toast.makeText(context, "Upload Failure.", Toast.LENGTH_LONG).show();
-                        });
-            } else {
-                Log.e("FILE", "File does not exist: " + localFile.getAbsolutePath());
-                Toast.makeText(context, "File does not exist.", Toast.LENGTH_LONG).show();
-            }
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            // Handle unsuccessful uploads
+                            // ...
+                            Toast.makeText(context, "Upload Failure.", Toast.LENGTH_LONG ).show();
+                        }
+                    });
 
-        } catch (Exception e) {
-            Log.e("ERROR", "Exception occurred: " + e.toString(), e);
-            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG).show();
+
+        }catch (Exception e){
+
+
+            Log.d("Clique AQUI","Clique AQUI file created: " + e.toString());
+            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG ).show();
+
         }
     }
-
-
-    public void registerMul(String name, Recognition rec) {
-        if (MainActivity2.registered.containsKey(name)) {
-            Recognition existingRec = MainActivity2.registered.get(name);
-            // this part feels redundant - we already have a list from last else
-            List<float[]> embeddings;
-            if (existingRec.getEmbedding() instanceof List) {
-                embeddings = (List<float[]>) existingRec.getEmbedding();
-            } else {
-                embeddings = new ArrayList<>();
-                embeddings.add(((float[][]) existingRec.getEmbedding())[0]); // Cast and add the existing single embedding
-            }
-            embeddings.add(((float[][]) rec.getEmbedding())[0]); // Add the new embedding
-            existingRec.setEmbedding(embeddings);
-        } else {
-            List<float[]> newEmbeddingList = new ArrayList<>();
-            newEmbeddingList.add(((float[][]) rec.getEmbedding())[0]); // Start with a list even for a single new entry
-            rec.setEmbedding(newEmbeddingList);
-            MainActivity2.registered.put(name, rec);
-        }
-    }
-
-
-    public void finalizeEmbeddings() {
-        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
-            Object embedding = entry.getValue().getEmbedding();
-            if (embedding instanceof List) {
-                List<float[]> embeddings = (List<float[]>) embedding;
-                if (!embeddings.isEmpty()) {
-                    float[] averagedEmbedding = averageEmbeddings(embeddings);
-                    // Check if averagedEmbedding is not null before setting
-                    if (averagedEmbedding != null) {
-                        entry.getValue().setEmbedding(averagedEmbedding);
-                        Log.d("EMB_MUL", "For " + entry.getKey() + " value is " + Arrays.toString(averagedEmbedding));
-                    }
-                }
-            }
-        }
-    }
-
-
-
-    private float[] averageEmbeddings(List<float[]> embeddings) {
-        if (embeddings == null || embeddings.isEmpty()) return null;
-        int length = embeddings.get(0).length; // Assume all embeddings have the same length
-        float[] sumEmbedding = new float[length];
-        for (float[] emb : embeddings) {
-            for (int i = 0; i < emb.length; i++) {
-                sumEmbedding[i] += emb[i];
-            }
-        }
-        for (int i = 0; i < length; i++) {
-            sumEmbedding[i] /= embeddings.size();
-        }
-        return sumEmbedding;
-    }
-
-
 
 
 
@@ -381,78 +250,6 @@ public class TFLiteFaceRecognition
 
 
 
-    public static FaceClassifier create(
-            final AssetManager assetManager,
-            final String modelFilename,
-            final int inputSize,
-            final boolean isQuantized)
-            throws IOException {
-
-        final TFLiteFaceRecognition d = new TFLiteFaceRecognition();
-        d.inputSize = inputSize;
-
-        try {
-            d.tfLite = new Interpreter(loadModelFile(assetManager, modelFilename));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        d.isModelQuantized = isQuantized;
-        // Pre-allocate buffers.
-        int numBytesPerChannel;
-        if (isQuantized) {
-            numBytesPerChannel = 1; // Quantized
-        } else {
-            numBytesPerChannel = 4; // Floating point
-        }
-        d.imgData = ByteBuffer.allocateDirect(1 * d.inputSize * d.inputSize * 3 * numBytesPerChannel);
-        d.imgData.order(ByteOrder.nativeOrder());
-        d.intValues = new int[d.inputSize * d.inputSize];
-        return d;
-    }
-
-    //looks for the nearest embedding in the dataset
-    // and returns the pair <id, distance>
-    private Pair<String, Float> findNearestMul(float[] emb) {
-        Pair<String, Float> ret = null;
-
-        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
-            final String name = entry.getKey();
-            final float[] knownEmb = (float[]) entry.getValue().getEmbedding();
-
-            float distance = 0;
-            for (int i = 0; i < emb.length; i++) {
-                float diff = emb[i] - knownEmb[i];
-                distance += diff*diff;
-            }
-            distance = (float) Math.sqrt(distance);
-            if (ret == null || distance < ret.second) {
-                ret = new Pair<>(name, distance);
-            }
-        }
-        return ret;
-    }
-
-    private Pair<String, Float> findNearest(float[] emb) {
-        Pair<String, Float> ret = null;
-
-        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
-            final String name = entry.getKey();
-            final float[] knownEmb = ((float[][]) entry.getValue().getEmbedding())[0];
-
-            float distance = 0;
-            for (int i = 0; i < emb.length; i++) {
-                float diff = emb[i] - knownEmb[i];
-                distance += diff*diff;
-            }
-            distance = (float) Math.sqrt(distance);
-            if (ret == null || distance < ret.second) {
-                ret = new Pair<>(name, distance);
-            }
-        }
-        return ret;
-    }
-
     private Pair<String, Float> findNearestDb(float[] emb) {
         Gson gson = new Gson();
 
@@ -547,81 +344,9 @@ public class TFLiteFaceRecognition
 
 
         // storeExtra bool true = new face to add
-//        if (storeExtra && distance > 1) {
-//            rec.setEmbedding(embeddings);
-//        }
-//        if (storeExtra && distance < 1) {
-//            Toast.makeText(context, "This face is already registered with name " + label, Toast.LENGTH_SHORT).show();
-//            label = "?";
-//            return null;
-//        }
-
-        // storeExtra bool true = new face to add
         if (storeExtra) {
             rec.setEmbedding(embeddings);
 
-        }
-
-        return rec;
-    }
-
-    @Override
-    public Recognition recognizeImage(final Bitmap bitmap, boolean storeExtra) {
-//        Log.d("BitmapInfo", "intValues length: " + intValues.length);
-//        Log.d("BitmapInfo", "Bitmap dimensions: " + bitmap.getWidth() + "x" + bitmap.getHeight());
-
-        bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
-        imgData.rewind();
-        for (int i = 0; i < inputSize; ++i) {
-            for (int j = 0; j < inputSize; ++j) {
-                int pixelValue = intValues[i * inputSize + j];
-                if (isModelQuantized) {
-                    // Quantized model
-                    imgData.put((byte) ((pixelValue >> 16) & 0xFF));
-                    imgData.put((byte) ((pixelValue >> 8) & 0xFF));
-                    imgData.put((byte) (pixelValue & 0xFF));
-                } else { // Float model
-                    imgData.putFloat((((pixelValue >> 16) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
-                    imgData.putFloat((((pixelValue >> 8) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
-                    imgData.putFloat(((pixelValue & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
-                }
-            }
-        }
-        Object[] inputArray = {imgData};
-        // Here outputMap is changed to fit the Face Mask detector
-        Map<Integer, Object> outputMap = new HashMap<>();
-
-        embeddings = new float[1][OUTPUT_SIZE];
-        outputMap.put(0, embeddings);
-
-        // Run the inference call.
-        tfLite.runForMultipleInputsOutputs(inputArray, outputMap);
-        Log.d("TFLiteFaceRec", "Embedding content " + outputMap + ", " + embeddings[0]);
-
-
-        float distance = Float.MAX_VALUE;
-        String id = "0";
-        String label = "?";
-
-        if (MainActivity2.registered.size() > 0) {
-            final Pair<String, Float> nearest = findNearestMul(embeddings[0]);
-            if (nearest != null) {
-                final String name = nearest.first;
-                label = name;
-                distance = nearest.second;
-            }
-        }
-        final int numDetectionsOutput = 1;
-        Recognition rec = new Recognition(
-                id,
-                label,
-                distance,
-                new RectF());
-
-
-        // storeExtra bool true = new face to add
-        if (storeExtra) {
-            rec.setEmbedding(embeddings);
         }
 
         return rec;
