@@ -370,7 +370,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         Bitmap croppedFace = Bitmap.createBitmap(input, bound.left, bound.top, bound.width(), bound.height());
         // CHANGE MODEL
         croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
-        recognition = faceClassifier.recognizeImageRec(croppedFace, true);
+        recognition = faceClassifier.recognizeImageRec(this, croppedFace, false);
         Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
         // Call upload method here with embedding data
 //        uploadImageToFirebaseStorage(recognition);
