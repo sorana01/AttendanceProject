@@ -27,10 +27,6 @@
             android:exported="true"
             android:label="@string/title_activity_admin"
             android:theme="@style/Theme.AttendanceProject.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
         <!-- Facebook SDK Meta-data -->
         <meta-data
@@ -66,36 +62,6 @@
             android:name=".account.student.StudentActivity"
             android:exported="false" />
         <activity
-            android:name=".imagepicker.MainActivity2"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".real_time.MainActivity3"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".imagepicker.RecognitionActivity"
-            android:exported="false" />
-        <activity
-            android:name=".imagepicker.RegisterActivity"
-            android:exported="false" />
-        <activity
-            android:name=".imagepicker.RecognitionActivityMine"
-            android:exported="false" />
-        <activity
-            android:name=".imagepicker.RegisterActivityMine"
-            android:exported="false" />
-        <activity
             android:name=".account.auth.RegisterUserActivity"
             android:exported="false" />
         <activity
@@ -103,7 +69,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
