@@ -12,7 +12,6 @@ import android.widget.Toast;
 
 import com.example.attendanceproject.R;
 import com.example.attendanceproject.account.admin.AdminActivity;
-import com.example.attendanceproject.account.student.OldStudentActivity;
 import com.example.attendanceproject.account.student.StudentActivity;
 import com.example.attendanceproject.account.teacher.TeacherActivity;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -69,7 +68,7 @@ public class LoginUserActivity extends AppCompatActivity{
         goToRegisterButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(getApplicationContext(), RegisterUserActivity.class));
+                startActivity(new Intent(getApplicationContext(), RoleSelectionActivity.class));
             }
         });
 

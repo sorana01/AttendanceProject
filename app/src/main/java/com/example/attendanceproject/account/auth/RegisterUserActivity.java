@@ -8,8 +8,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.example.attendanceproject.R;
@@ -29,14 +30,14 @@ public class RegisterUserActivity extends AppCompatActivity {
     private EditText fullNameEditText, emailEditText, passwordEditText, confirmPasswordEditText, phoneEditText;
     private EditText studentIdEditText, cnpEditText;
     private Button registerButton, goToLoginButton;
-    private CheckBox teacherCheckBox, studentCheckBox;
+    private RadioGroup roleRadioGroup;
+    private RadioButton teacherRadioButton, studentRadioButton;
 
     private boolean isTeacher, isStudent;
     private boolean valid;
     private String isApproved;
 
     private FirebaseAuth fAuth;
-
     private FirebaseFirestore fStore;
 
     @Override
@@ -56,33 +57,30 @@ public class RegisterUserActivity extends AppCompatActivity {
         cnpEditText = findViewById(R.id.registerCnp);
         registerButton = findViewById(R.id.registerBtn);
         goToLoginButton = findViewById(R.id.gotoLogin);
-        teacherCheckBox = findViewById(R.id.isTeacher);
-        studentCheckBox = findViewById(R.id.isStudent);
-        isTeacher = teacherCheckBox.isChecked();
-        isStudent = studentCheckBox.isChecked();
+        roleRadioGroup = findViewById(R.id.roleRadioGroup);
+        teacherRadioButton = findViewById(R.id.isTeacher);
+        studentRadioButton = findViewById(R.id.isStudent);
         isApproved = "pending";
 
-        // Listener to ensure mutual exclusivity
-        teacherCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                studentCheckBox.setChecked(false);
+        roleRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.isTeacher) {
+                isTeacher = true;
+                isStudent = false;
+                cnpEditText.setVisibility(View.GONE);
+                studentIdEditText.setVisibility(View.GONE);
+            } else if (checkedId == R.id.isStudent) {
+                isTeacher = false;
+                isStudent = true;
+                cnpEditText.setVisibility(View.VISIBLE);
+                studentIdEditText.setVisibility(View.VISIBLE);
             }
         });
-
-        studentCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                teacherCheckBox.setChecked(false);
-            }
-        });
-
 
         registerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 valid = emptyField(fullNameEditText) && emptyField(emailEditText) && emptyField(passwordEditText) && emptyField(phoneEditText);
                 valid = valid && checkField();
-                Log.d("VALID", "Value of checkField() is: " + checkField());
-                Log.d("VALID", "Value of valid is: " + valid);
 
                 if (valid) {
                     if (passwordEditText.getText().toString().equals(confirmPasswordEditText.getText().toString())) {
@@ -91,7 +89,6 @@ public class RegisterUserActivity extends AppCompatActivity {
                             public void onSuccess(AuthResult authResult) {
                                 FirebaseUser user = fAuth.getCurrentUser();
                                 if (user != null) {
-                                    // Setting the display name in the Firebase Auth profile
                                     UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
                                             .setDisplayName(fullNameEditText.getText().toString())
                                             .build();
@@ -103,23 +100,21 @@ public class RegisterUserActivity extends AppCompatActivity {
                                                 }
                                             });
 
-                                    // Prepare user info for Firestore
                                     DocumentReference df = fStore.collection("Users").document(user.getUid());
                                     Map<String, Object> userInfo = new HashMap<>();
                                     userInfo.put("FullName", fullNameEditText.getText().toString());
                                     userInfo.put("UserEmail", emailEditText.getText().toString());
                                     userInfo.put("PhoneNumber", phoneEditText.getText().toString());
-                                    if (teacherCheckBox.isChecked())
-                                        userInfo.put("isTeacher", isTeacher);
-                                    else {
-                                        userInfo.put("isStudent", isStudent);
+                                    userInfo.put("isApproved", isApproved);
+
+                                    if (isTeacher) {
+                                        userInfo.put("isTeacher", true);
+                                    } else {
+                                        userInfo.put("isStudent", true);
                                         userInfo.put("SSN", cnpEditText.getText().toString());
                                         userInfo.put("StudentId", studentIdEditText.getText().toString());
                                     }
 
-                                    userInfo.put("isApproved", isApproved);
-
-                                    // Save the user info to Firestore
                                     df.set(userInfo).addOnSuccessListener(aVoid -> {
                                         Toast.makeText(RegisterUserActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
                                     }).addOnFailureListener(e -> {
@@ -150,36 +145,30 @@ public class RegisterUserActivity extends AppCompatActivity {
                 startActivity(new Intent(getApplicationContext(), LoginUserActivity.class));
             }
         });
-
-
     }
 
-    public boolean emptyField(EditText textField){
-        if(textField.getText().toString().isEmpty()){
+    public boolean emptyField(EditText textField) {
+        if (textField.getText().toString().isEmpty()) {
             textField.setError("This field cannot be empty");
             return false;
-        }else {
+        } else {
             return true;
         }
     }
 
     public boolean checkField() {
-        isTeacher = teacherCheckBox.isChecked();
-        isStudent = studentCheckBox.isChecked();
-        // empty field
-//        boolean isCnp = !cnpEditText.getText().toString().isEmpty();
-//        boolean isStudentId = !studentIdEditText.getText().toString().isEmpty();
+        isTeacher = teacherRadioButton.isChecked();
+        isStudent = studentRadioButton.isChecked();
 
-        if (!isStudent && !isTeacher) {
+        if (!isTeacher && !isStudent) {
             Toast.makeText(RegisterUserActivity.this, "One of the roles must be checked!", Toast.LENGTH_SHORT).show();
             return false;
         }
-        // student role selected but cnp and studentId not filled in
+
         if (isStudent && (!emptyField(cnpEditText) || !emptyField(studentIdEditText))) {
             return false;
         }
 
         return true;
     }
-
 }

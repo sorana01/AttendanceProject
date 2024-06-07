@@ -13,12 +13,11 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
-import com.example.attendanceproject.UserAccountActivity;
-import com.example.attendanceproject.imagepicker.MainActivity2;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageMetadata;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.gson.Gson;
@@ -37,10 +36,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class TFLiteFaceRecognition
@@ -72,18 +68,6 @@ public class TFLiteFaceRecognition
     private HashMap<String, Recognition> registered = new HashMap<>();
 
 
-
-    public void register(String name, Recognition rec) {
-//        Map<String, Recognition> recognitionMap = new HashMap<>();
-//
-//        for (Map.Entry<String, Recognition> entry : recognitionMap.entrySet()) {
-//            if (entry.getKey().equals(name)) {
-//                return;
-//            }
-//        }
-
-        MainActivity2.registered.put(name, rec);
-    }
 
     public void registerDb(String name, Recognition rec, Context context) {
         registered.put(name, rec);
@@ -147,64 +131,6 @@ public class TFLiteFaceRecognition
         }
     }
 
-    public void registerMul(String name, Recognition rec) {
-        if (MainActivity2.registered.containsKey(name)) {
-            Recognition existingRec = MainActivity2.registered.get(name);
-            // this part feels redundant - we already have a list from last else
-            List<float[]> embeddings;
-            if (existingRec.getEmbedding() instanceof List) {
-                embeddings = (List<float[]>) existingRec.getEmbedding();
-            } else {
-                embeddings = new ArrayList<>();
-                embeddings.add(((float[][]) existingRec.getEmbedding())[0]); // Cast and add the existing single embedding
-            }
-            embeddings.add(((float[][]) rec.getEmbedding())[0]); // Add the new embedding
-            existingRec.setEmbedding(embeddings);
-        } else {
-            List<float[]> newEmbeddingList = new ArrayList<>();
-            newEmbeddingList.add(((float[][]) rec.getEmbedding())[0]); // Start with a list even for a single new entry
-            rec.setEmbedding(newEmbeddingList);
-            MainActivity2.registered.put(name, rec);
-        }
-    }
-
-
-    public void finalizeEmbeddings() {
-        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
-            Object embedding = entry.getValue().getEmbedding();
-            if (embedding instanceof List) {
-                List<float[]> embeddings = (List<float[]>) embedding;
-                if (!embeddings.isEmpty()) {
-                    float[] averagedEmbedding = averageEmbeddings(embeddings);
-                    // Check if averagedEmbedding is not null before setting
-                    if (averagedEmbedding != null) {
-                        entry.getValue().setEmbedding(averagedEmbedding);
-                        Log.d("EMB_MUL", "For " + entry.getKey() + " value is " + Arrays.toString(averagedEmbedding));
-                    }
-                }
-            }
-        }
-    }
-
-
-
-    private float[] averageEmbeddings(List<float[]> embeddings) {
-        if (embeddings == null || embeddings.isEmpty()) return null;
-        int length = embeddings.get(0).length; // Assume all embeddings have the same length
-        float[] sumEmbedding = new float[length];
-        for (float[] emb : embeddings) {
-            for (int i = 0; i < emb.length; i++) {
-                sumEmbedding[i] += emb[i];
-            }
-        }
-        for (int i = 0; i < length; i++) {
-            sumEmbedding[i] /= embeddings.size();
-        }
-        return sumEmbedding;
-    }
-
-
-
 
 
 
@@ -228,90 +154,78 @@ public class TFLiteFaceRecognition
             final String modelFilename,
             final int inputSize,
             final boolean isQuantized,
-            Context context)
-            throws IOException {
+            Context context) throws IOException {
 
         final TFLiteFaceRecognition d = new TFLiteFaceRecognition();
 
         try {
             FirebaseStorage storage = FirebaseStorage.getInstance();
             StorageReference storageRef = storage.getReference();
-            StorageReference test2 = storageRef.child(FileName);
+            StorageReference test2 = storageRef.child(FileName); // Update this path
 
-            File localFile = File.createTempFile("Student", "txt");
-            test2.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+            // Check if file exists before attempting to download
+            test2.getMetadata().addOnSuccessListener(new OnSuccessListener<StorageMetadata>() {
                 @Override
-                public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                public void onSuccess(StorageMetadata storageMetadata) {
+                    // File exists, proceed with downloading
                     try {
-                        Gson gson = new Gson();
-                        ObjectInputStream i = new ObjectInputStream(new FileInputStream(localFile));
+                        final File localFile = File.createTempFile("Student", "txt");
 
-                        Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
-                        HashMap<String, Recognition> registeredDb = gson.fromJson((String)i.readObject(), type);
-                        i.close();
+                        test2.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                            @Override
+                            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                                try {
+                                    Gson gson = new Gson();
+                                    ObjectInputStream i = new ObjectInputStream(new FileInputStream(localFile));
+                                    Type type = new TypeToken<HashMap<String, Recognition>>(){}.getType();
+                                    HashMap<String, Recognition> registeredDb = gson.fromJson((String)i.readObject(), type);
+                                    i.close();
 
-                        // Check if the map is not empty
-                        if (registeredDb != null && !registeredDb.isEmpty()){
-                            d.registered = registeredDb;
-                            // Logging each key-value pair
-                            for (Map.Entry<String, Recognition> entry : registeredDb.entrySet()) {
-                                Log.d("REGISTERED_DB", "Key: " + entry.getKey() + ", Value: " + entry.getValue().toString());
+                                    // Check if the map is not empty
+                                    if (registeredDb != null && !registeredDb.isEmpty()) {
+                                        d.registered = registeredDb;
+                                        // Logging each key-value pair
+                                        for (Map.Entry<String, Recognition> entry : registeredDb.entrySet()) {
+                                            Log.d("REGISTERED_DB", "Key: " + entry.getKey() + ", Value: " + entry.getValue().toString());
+                                        }
+                                    } else {
+                                        Log.d("REGISTERED_DB", "The registered database is empty or null.");
+                                    }
+
+                                    Toast.makeText(context, "Content embeddings read", Toast.LENGTH_LONG).show();
+
+                                } catch (Exception e) {
+                                    Log.d("REGISTERED_DB_EXCEPTION", "Exception when reading and processing file: " + e.toString());
+                                    Toast.makeText(context, "Exception 1: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
                             }
-                        } else {
-                            Log.d("REGISTERED_DB", "The registered database is empty or null.");
-                        }
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception exception) {
+                                Log.d("DOWNLOAD_FAILURE", "Error downloading file: " + exception.toString());
+                                Toast.makeText(context, "Exception 2: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        });
 
-                        Toast.makeText(context, "Content embeddings read", Toast.LENGTH_LONG ).show();
-
-                    } catch (Exception e) {
-                        Log.d("REGISTERED_DB_EXCEPTION", "Exception when reading and processing file: " + e.toString());
-                        Toast.makeText(context, "Exception 1" + e.getMessage(), Toast.LENGTH_LONG ).show();
+                    } catch (IOException e) {
+                        Log.d("FILE_CREATION_ERROR", "Error creating temp file: " + e.toString());
+                        Toast.makeText(context, "Error creating temp file", Toast.LENGTH_LONG).show();
                     }
                 }
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception exception) {
-                    Log.d("DOWNLOAD_FAILURE", "Error downloading file: " + exception.toString());
-                    Toast.makeText(context, "Exception 2 " + exception.getMessage(), Toast.LENGTH_LONG ).show();
+                    // File does not exist, handle this case
+                    Log.d("FILE_NOT_FOUND", "File does not exist: " + exception.toString());
+                    Toast.makeText(context, "File not found.", Toast.LENGTH_LONG).show();
+
                 }
             });
 
-
         } catch (Exception e) {
-
             Log.d("Clique AQUI", "Clique AQUI file created: " + e.toString());
         }
 
-
-        d.inputSize = inputSize;
-
-        try {
-            d.tfLite = new Interpreter(loadModelFile(assetManager, modelFilename));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        d.isModelQuantized = isQuantized;
-        // Pre-allocate buffers.
-        int numBytesPerChannel;
-        if (isQuantized) {
-            numBytesPerChannel = 1; // Quantized
-        } else {
-            numBytesPerChannel = 4; // Floating point
-        }
-        d.imgData = ByteBuffer.allocateDirect(1 * d.inputSize * d.inputSize * 3 * numBytesPerChannel);
-        d.imgData.order(ByteOrder.nativeOrder());
-        d.intValues = new int[d.inputSize * d.inputSize];
-        return d;
-    }
-    public static FaceClassifier create(
-            final AssetManager assetManager,
-            final String modelFilename,
-            final int inputSize,
-            final boolean isQuantized)
-            throws IOException {
-
-        final TFLiteFaceRecognition d = new TFLiteFaceRecognition();
         d.inputSize = inputSize;
 
         try {
@@ -334,47 +248,7 @@ public class TFLiteFaceRecognition
         return d;
     }
 
-    //looks for the nearest embedding in the dataset
-    // and returns the pair <id, distance>
-    private Pair<String, Float> findNearestMul(float[] emb) {
-        Pair<String, Float> ret = null;
 
-        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
-            final String name = entry.getKey();
-            final float[] knownEmb = (float[]) entry.getValue().getEmbedding();
-
-            float distance = 0;
-            for (int i = 0; i < emb.length; i++) {
-                float diff = emb[i] - knownEmb[i];
-                distance += diff*diff;
-            }
-            distance = (float) Math.sqrt(distance);
-            if (ret == null || distance < ret.second) {
-                ret = new Pair<>(name, distance);
-            }
-        }
-        return ret;
-    }
-
-    private Pair<String, Float> findNearest(float[] emb) {
-        Pair<String, Float> ret = null;
-
-        for (Map.Entry<String, Recognition> entry : MainActivity2.registered.entrySet()) {
-            final String name = entry.getKey();
-            final float[] knownEmb = ((float[][]) entry.getValue().getEmbedding())[0];
-
-            float distance = 0;
-            for (int i = 0; i < emb.length; i++) {
-                float diff = emb[i] - knownEmb[i];
-                distance += diff*diff;
-            }
-            distance = (float) Math.sqrt(distance);
-            if (ret == null || distance < ret.second) {
-                ret = new Pair<>(name, distance);
-            }
-        }
-        return ret;
-    }
 
     private Pair<String, Float> findNearestDb(float[] emb) {
         Gson gson = new Gson();
@@ -411,7 +285,7 @@ public class TFLiteFaceRecognition
     //TAKE INPUT IMAGE AND RETURN RECOGNITIONS
     // bitmap = crop
     @Override
-    public Recognition recognizeImageRec(final Bitmap bitmap, boolean storeExtra) {
+    public Recognition recognizeImageRec(Context context, final Bitmap bitmap, boolean storeExtra) {
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         imgData.rewind();
         for (int i = 0; i < inputSize; ++i) {
@@ -445,6 +319,7 @@ public class TFLiteFaceRecognition
         String id = "0";
         String label = "?";
 
+        // if we don't intend to save the new face, means we perform recognition
         if (registered.size() > 0) {
             Log.d("FROM DB", "dataset SIZE: " + registered.size());
             // looks for the nearest neighbour
@@ -460,6 +335,7 @@ public class TFLiteFaceRecognition
 
 
         final int numDetectionsOutput = 1;
+        // label = title
         Recognition rec = new Recognition(
                 id,
                 label,
@@ -470,68 +346,7 @@ public class TFLiteFaceRecognition
         // storeExtra bool true = new face to add
         if (storeExtra) {
             rec.setEmbedding(embeddings);
-        }
 
-        return rec;
-    }
-
-    @Override
-    public Recognition recognizeImage(final Bitmap bitmap, boolean storeExtra) {
-//        Log.d("BitmapInfo", "intValues length: " + intValues.length);
-//        Log.d("BitmapInfo", "Bitmap dimensions: " + bitmap.getWidth() + "x" + bitmap.getHeight());
-
-        bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
-        imgData.rewind();
-        for (int i = 0; i < inputSize; ++i) {
-            for (int j = 0; j < inputSize; ++j) {
-                int pixelValue = intValues[i * inputSize + j];
-                if (isModelQuantized) {
-                    // Quantized model
-                    imgData.put((byte) ((pixelValue >> 16) & 0xFF));
-                    imgData.put((byte) ((pixelValue >> 8) & 0xFF));
-                    imgData.put((byte) (pixelValue & 0xFF));
-                } else { // Float model
-                    imgData.putFloat((((pixelValue >> 16) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
-                    imgData.putFloat((((pixelValue >> 8) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
-                    imgData.putFloat(((pixelValue & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
-                }
-            }
-        }
-        Object[] inputArray = {imgData};
-        // Here outputMap is changed to fit the Face Mask detector
-        Map<Integer, Object> outputMap = new HashMap<>();
-
-        embeddings = new float[1][OUTPUT_SIZE];
-        outputMap.put(0, embeddings);
-
-        // Run the inference call.
-        tfLite.runForMultipleInputsOutputs(inputArray, outputMap);
-        Log.d("TFLiteFaceRec", "Embedding content " + outputMap + ", " + embeddings[0]);
-
-
-        float distance = Float.MAX_VALUE;
-        String id = "0";
-        String label = "?";
-
-        if (MainActivity2.registered.size() > 0) {
-            final Pair<String, Float> nearest = findNearestMul(embeddings[0]);
-            if (nearest != null) {
-                final String name = nearest.first;
-                label = name;
-                distance = nearest.second;
-            }
-        }
-        final int numDetectionsOutput = 1;
-        Recognition rec = new Recognition(
-                id,
-                label,
-                distance,
-                new RectF());
-
-
-        // storeExtra bool true = new face to add
-        if (storeExtra) {
-            rec.setEmbedding(embeddings);
         }
 
         return rec;

@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
@@ -26,10 +27,6 @@
             android:exported="true"
             android:label="@string/title_activity_admin"
             android:theme="@style/Theme.AttendanceProject.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
         <!-- Facebook SDK Meta-data -->
         <meta-data
@@ -40,18 +37,8 @@
             android:value="@string/facebook_client_token" />
         <meta-data
             android:name="com.facebook.sdk.ApplicationProtocolScheme"
-            android:value="@string/facebook_login_protocol_scheme" /> <!-- Declare FirebaseUIActivity here and make it the start activity -->
-        <activity
-            android:name=".FirebaseUIActivity"
-            android:exported="true">
+            android:value="@string/facebook_login_protocol_scheme" />
 
-            <!-- Intent filter to catch MAIN action and LAUNCHER category -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
         <activity
             android:name=".account.teacher.RecognizeActivity"
             android:exported="false" />
@@ -67,50 +54,12 @@
         <activity
             android:name=".account.teacher.TeacherActivity"
             android:exported="false" />
-        <activity
-            android:name=".account.student.OldStudentActivity"
-            android:exported="false" />
+        <activity android:name=".account.auth.RoleSelectionActivity"/>
+        <activity android:name=".account.auth.RegisterTeacherActivity"/>
+        <activity android:name=".account.auth.RegisterStudentActivity"/>
+
         <activity
             android:name=".account.student.StudentActivity"
-            android:exported="false" />
-        <activity
-            android:name=".UserAccountActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".imagepicker.MainActivity2"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".real_time.MainActivity3"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".imagepicker.RecognitionActivity"
-            android:exported="false" />
-        <activity
-            android:name=".imagepicker.RegisterActivity"
-            android:exported="false" />
-        <activity
-            android:name=".imagepicker.RecognitionActivityMine"
-            android:exported="false" />
-        <activity
-            android:name=".imagepicker.RegisterActivityMine"
             android:exported="false" />
         <activity
             android:name=".account.auth.RegisterUserActivity"
@@ -120,7 +69,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

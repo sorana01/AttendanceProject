@@ -15,8 +15,8 @@ import java.util.ArrayList;
 
 public class EntityAdapter<T extends EntityItem> extends RecyclerView.Adapter<EntityAdapter.EntityViewHolder> {
     protected ArrayList<T> entityItems;
-    private Context context;
-    private OnItemClickListener listener;
+    Context context;
+    OnItemClickListener listener;
 
 
     // Interface for click events
@@ -58,13 +58,12 @@ public class EntityAdapter<T extends EntityItem> extends RecyclerView.Adapter<En
         }
     }
 
-
     // Create new views (invoked by the layout manager)
     @NonNull
     @Override
     public EntityViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         // Create a new view, which defines the UI of the list item
-        View itemView = LayoutInflater.from(context).inflate(R.layout.entity_item, parent, false);
+        View itemView = LayoutInflater.from(context).inflate(R.layout.item_entity, parent, false);
         return new EntityViewHolder(itemView);
     }
 

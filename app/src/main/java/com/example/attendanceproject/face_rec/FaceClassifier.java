@@ -4,23 +4,12 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 
-import com.example.attendanceproject.UserAccountActivity;
-
 /** Generic interface for interacting with different recognition engines. */
 public interface FaceClassifier {
 
-    void registerMul(String name, Recognition recognition);
-
-    void register(String name, Recognition recognition);
-
     void registerDb(String name, Recognition recognition, Context context);
 
-
-    void finalizeEmbeddings();
-
-    Recognition recognizeImage(Bitmap bitmap, boolean getExtra);
-
-    Recognition recognizeImageRec(Bitmap bitmap, boolean getExtra);
+    Recognition recognizeImageRec(Context context, Bitmap bitmap, boolean getExtra);
 
     public class Recognition {
         private final String id;

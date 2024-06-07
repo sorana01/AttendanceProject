@@ -14,6 +14,8 @@ public class EntityItem {
         this.entityName = entityName;
     }
 
+    public EntityItem() {}
+
     public EntityItem(String entityName, String entityDetail, String entityId) {
         this.entityName = entityName;
         this.entityDetail = entityDetail;
@@ -39,4 +41,5 @@ public class EntityItem {
     public void setEntityDetail(String entityDetail) {
         this.entityDetail = entityDetail;
     }
+
 }
