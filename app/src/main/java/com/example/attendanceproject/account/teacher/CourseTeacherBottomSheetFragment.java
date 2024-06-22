@@ -56,7 +56,7 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
 
         view.findViewById(R.id.mark_att_pic_TV).setOnClickListener(v -> showWeekPickerDialog(RecognizeActivity.class));
 
-        view.findViewById(R.id.mark_att_manual_TV).setOnClickListener(v -> showWeekPickerDialog(ManualAttendanceActivity.class));
+//        view.findViewById(R.id.mark_att_manual_TV).setOnClickListener(v -> showWeekPickerDialog(ManualAttendanceActivity.class));
 
         view.findViewById(R.id.view_att_TV).setOnClickListener(v -> showWeekPickerDialog(ViewAttendanceTeacherActivity.class));
     }

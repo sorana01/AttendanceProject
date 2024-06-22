@@ -152,6 +152,68 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
                 });
     }
 
+//    private void saveData() {
+//        if (courseId == null) {
+//            Toast.makeText(getContext(), "Course not found", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//
+//        ArrayList<CheckableEntityItem> checkedItems = checkableEntityAdapter.getCheckedItems();
+//        if (checkedItems.isEmpty()) {
+//            Toast.makeText(getContext(), "No " + currentRole + "s selected", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//
+//        String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
+//
+//        for (CheckableEntityItem item : checkedItems) {
+//            fStore.collection("Users")
+//                    .whereEqualTo("UserEmail", item.getEntityDetail())
+//                    .get()
+//                    .addOnSuccessListener(userSnapshot -> {
+//                        if (!userSnapshot.isEmpty()) {
+//                            QueryDocumentSnapshot userDoc = (QueryDocumentSnapshot) userSnapshot.getDocuments().get(0);
+//                            DocumentReference userRef = userDoc.getReference();
+//
+//                            // Add user reference to course's subcollection
+//                            Map<String, Object> userRefData = new HashMap<>();
+//                            userRefData.put("userReference", userRef);
+//                            userRefData.put("userName", item.getEntityName());  // Optional for quick view
+//                            userRefData.put("userEmail", item.getEntityDetail());   //Optional for quick view
+//
+//
+//                            fStore.collection(collectionPath)
+//                                    .add(userRefData)
+//                                    .addOnSuccessListener(documentReference -> {
+//                                        Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
+//                                    })
+//                                    .addOnFailureListener(e -> {
+//                                        Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
+//                                    });
+//
+//                            // Add course reference to user's subcollection
+//                            String userCourseSubPath = "CoursesEnrolled";
+//                            DocumentReference courseRef = fStore.collection("Courses").document(courseId);
+//                            Map<String, Object> courseRefData = new HashMap<>();
+//                            courseRefData.put("courseReference", courseRef);
+//                            courseRefData.put("courseName", courseName);  // Optional for quick view
+//                            courseRefData.put("courseDetail", courseDetail);  // Optional for quick view
+//
+//                            userRef.collection(userCourseSubPath)
+//                                    .add(courseRefData)
+//                                    .addOnFailureListener(e -> {
+//                                        Log.w("Firestore", "Error adding course reference to user", e);
+//                                    });
+//                        } else {
+//                            Toast.makeText(getContext(), "User not found", Toast.LENGTH_SHORT).show();
+//                        }
+//                    })
+//                    .addOnFailureListener(e -> {
+//                        Toast.makeText(getContext(), "Error finding user: " + item.getEntityDetail(), Toast.LENGTH_SHORT).show();
+//                    });
+//        }
+//    }
+
     private void saveData() {
         if (courseId == null) {
             Toast.makeText(getContext(), "Course not found", Toast.LENGTH_SHORT).show();
@@ -167,52 +229,61 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
         String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
 
         for (CheckableEntityItem item : checkedItems) {
-            fStore.collection("Users")
-                    .whereEqualTo("UserEmail", item.getEntityDetail())
-                    .get()
-                    .addOnSuccessListener(userSnapshot -> {
-                        if (!userSnapshot.isEmpty()) {
-                            QueryDocumentSnapshot userDoc = (QueryDocumentSnapshot) userSnapshot.getDocuments().get(0);
-                            DocumentReference userRef = userDoc.getReference();
-
-                            // Add user reference to course's subcollection
-                            Map<String, Object> userRefData = new HashMap<>();
-                            userRefData.put("userReference", userRef);
-                            userRefData.put("userName", item.getEntityName());  // Optional for quick view
-                            userRefData.put("userEmail", item.getEntityDetail());   //Optional for quick view
-
-
-                            fStore.collection(collectionPath)
-                                    .add(userRefData)
-                                    .addOnSuccessListener(documentReference -> {
-                                        Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
-                                    });
-
-                            // Add course reference to user's subcollection
-                            String userCourseSubPath = "CoursesEnrolled";
-                            DocumentReference courseRef = fStore.collection("Courses").document(courseId);
-                            Map<String, Object> courseRefData = new HashMap<>();
-                            courseRefData.put("courseReference", courseRef);
-                            courseRefData.put("courseName", courseName);  // Optional for quick view
-                            courseRefData.put("courseDetail", courseDetail);  // Optional for quick view
-
-                            userRef.collection(userCourseSubPath)
-                                    .add(courseRefData)
-                                    .addOnFailureListener(e -> {
-                                        Log.w("Firestore", "Error adding course reference to user", e);
-                                    });
-                        } else {
-                            Toast.makeText(getContext(), "User not found", Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(getContext(), "Error finding user: " + item.getEntityDetail(), Toast.LENGTH_SHORT).show();
-                    });
+            processUserAssignment(item, collectionPath);
         }
     }
+
+
+    private void processUserAssignment(CheckableEntityItem item, String collectionPath) {
+        fStore.collection("Users")
+                .whereEqualTo("UserEmail", item.getEntityDetail())
+                .get()
+                .addOnSuccessListener(userSnapshot -> {
+                    if (!userSnapshot.isEmpty()) {
+                        QueryDocumentSnapshot userDoc = (QueryDocumentSnapshot) userSnapshot.getDocuments().get(0);
+                        DocumentReference userRef = userDoc.getReference();
+                        addUserToCourseSubcollection(item, collectionPath, userRef);
+                        addCourseToUserSubcollection(userRef);
+                    } else {
+                        Toast.makeText(getContext(), "User not found", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Error finding user: " + item.getEntityDetail(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void addUserToCourseSubcollection(CheckableEntityItem item, String collectionPath, DocumentReference userRef) {
+        Map<String, Object> userRefData = new HashMap<>();
+        userRefData.put("userReference", userRef);
+        userRefData.put("userName", item.getEntityName());  // Optional for quick view
+        userRefData.put("userEmail", item.getEntityDetail());  // Optional for quick view
+
+        fStore.collection(collectionPath)
+                .add(userRefData)
+                .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void addCourseToUserSubcollection(DocumentReference userRef) {
+        String userCourseSubPath = "CoursesEnrolled";
+        DocumentReference courseRef = fStore.collection("Courses").document(courseId);
+        Map<String, Object> courseRefData = new HashMap<>();
+        courseRefData.put("courseReference", courseRef);
+        courseRefData.put("courseName", courseName);  // Optional for quick view
+        courseRefData.put("courseDetail", courseDetail);  // Optional for quick view
+
+        userRef.collection(userCourseSubPath)
+                .add(courseRefData)
+                .addOnFailureListener(e -> {
+                    Log.w("Firestore", "Error adding course reference to user", e);
+                });
+    }
+
 
 
     private void loadUnassignedUsers(String isRole) {
