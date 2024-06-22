@@ -9,7 +9,7 @@ public interface FaceClassifier {
 
     void registerDb(String name, Recognition recognition, Context context);
 
-    Recognition recognizeImageRec(Context context, Bitmap bitmap, boolean getExtra);
+    Recognition recognizeImage(Context context, Bitmap bitmap, boolean getExtra);
 
     public class Recognition {
         private final String id;

@@ -159,7 +159,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
 
         try {
             // CHANGE MODEL
-            faceClassifier = TFLiteFaceRecognition.createDb(getAssets(), "facenet.tflite", 160, false, this);
+            faceClassifier = TFLiteFaceRecognition.create(getAssets(), "facenet.tflite", 160, false, this);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -370,7 +370,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
         Bitmap croppedFace = Bitmap.createBitmap(input, bound.left, bound.top, bound.width(), bound.height());
         // CHANGE MODEL
         croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
-        recognition = faceClassifier.recognizeImageRec(this, croppedFace, false);
+        recognition = faceClassifier.recognizeImage(this, croppedFace, false);
         Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
         // Call upload method here with embedding data
 //        uploadImageToFirebaseStorage(recognition);
