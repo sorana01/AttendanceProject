@@ -56,9 +56,6 @@ public class AcceptAccFragment extends Fragment {
     private FragmentAcceptAccBinding binding;
     private Map<String, String> userMap = new HashMap<>();
     private FaceClassifier faceClassifier;
-    private FirebaseStorage storage = FirebaseStorage.getInstance();
-    private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-    private FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
     FaceDetectorOptions highAccuracyOpts =
             new FaceDetectorOptions.Builder()
                     .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
@@ -78,7 +75,7 @@ public class AcceptAccFragment extends Fragment {
 
         try {
             // CHANGE MODEL
-            faceClassifier = TFLiteFaceRecognition.createDb(getContext().getAssets(), "facenet.tflite", 160, false, getContext());
+            faceClassifier = TFLiteFaceRecognition.create(getContext().getAssets(), "facenet.tflite", 160, false, getContext());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -252,28 +249,10 @@ public class AcceptAccFragment extends Fragment {
 
         Bitmap croppedFace = Bitmap.createBitmap(input, bound.left, bound.top, bound.width(), bound.height());
         croppedFace = Bitmap.createScaledBitmap(croppedFace, 160, 160, false);
-        FaceClassifier.Recognition recognition = faceClassifier.recognizeImageRec(getContext(), croppedFace, true);        Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
+        FaceClassifier.Recognition recognition = faceClassifier.recognizeImage(getContext(), croppedFace, true);
         Log.d("INSIDE REGISTER", "Recognition object value " + recognition);
         faceClassifier.registerDb(fullName, recognition, getContext());
     }
-
-    private Bitmap uriToBitmap(Uri selectedFileUri) {
-        try {
-            if (getContext() != null) {
-                ParcelFileDescriptor parcelFileDescriptor = getContext().getContentResolver().openFileDescriptor(selectedFileUri, "r");
-                if (parcelFileDescriptor != null) {
-                    FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
-                    Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor);
-                    parcelFileDescriptor.close();
-                    return image;
-                }
-            }
-        } catch(IOException e){
-            e.printStackTrace();
-        }
-        return null;
-    }
-
 
     @SuppressLint("Range")
     public Bitmap rotateBitmap(Bitmap input, Uri imageUri){
