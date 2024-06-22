@@ -57,15 +57,20 @@
         <activity android:name=".account.auth.RoleSelectionActivity"/>
         <activity android:name=".account.auth.RegisterTeacherActivity"/>
         <activity android:name=".account.auth.RegisterStudentActivity"/>
-
         <activity
             android:name=".account.student.StudentActivity"
             android:exported="false" />
         <activity
-            android:name=".account.auth.RegisterUserActivity"
-            android:exported="false" />
-        <activity
             android:name=".account.auth.LoginUserActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".FaceDetActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
