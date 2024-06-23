@@ -34,6 +34,4 @@
 - After setting up the project and Firebase configuration, build the project using `Build -> Rebuild Project`.
 - Run the application on a physical device or an emulator by clicking `Run -> Run 'app'`.
 
----
 
-This README provides a clear and concise guide for anyone looking to clone and run your Android Studio project with Firebase integration.
