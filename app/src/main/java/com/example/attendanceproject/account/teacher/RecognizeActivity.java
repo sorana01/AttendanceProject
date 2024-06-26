@@ -219,6 +219,7 @@ public class RecognizeActivity extends AppCompatActivity implements FaceAdapter.
                                         Log.d("Firestore Attendance", "DocumentSnapshot successfully updated with new attendees!");
                                         updateUsersAttendance(attendeeNames, FirebaseFirestore.getInstance().document("Courses/" + courseId));
                                         progressBar.setVisibility(View.GONE);
+                                        launchViewAttendanceActivity(); // Open ViewAttendanceActivity after saving
                                     })
                                     .addOnFailureListener(e -> Log.w("Firestore", "Error updating document", e));
                         }
