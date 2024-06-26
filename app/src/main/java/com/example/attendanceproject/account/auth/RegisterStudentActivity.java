@@ -147,25 +147,9 @@ public class RegisterStudentActivity extends AppCompatActivity {
             }
         });
 
-        registerButton.setOnClickListener(view -> {
-            boolean valid = !(emptyField(fullNameEditText) && emptyField(emailEditText) && emptyField(phoneEditText) && emptyField(cnpEditText) && emptyField(studentIdEditText) && emptyField(passwordEditText) && emptyField(confirmPasswordEditText));
 
-            if (valid && passwordEditText.getText().toString().equals(confirmPasswordEditText.getText().toString())) {
-                if (imageUri != null) {
-                    if (oneFace) {
-                        checkPhoneNumberAndRegister();
-                    }
-                    else {
-                        Toast.makeText(RegisterStudentActivity.this, "You must upload a picture alone!", Toast.LENGTH_SHORT).show();
-                    }
-                }
-                else {
-                    Toast.makeText(RegisterStudentActivity.this, "You must upload a picture!", Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                confirmPasswordEditText.setError("Passwords have to match");
-            }
-        });
+// Setting the OnClickListener for the register button
+        registerButton.setOnClickListener(view -> handleRegisterButtonClick());
 
         goToLoginButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -273,6 +257,40 @@ public class RegisterStudentActivity extends AppCompatActivity {
         constraintSet.applyTo(constraintLayout);
     }
 
+    // Method to check if all required fields are filled
+    private boolean areFieldsFilled() {
+        return !(emptyField(fullNameEditText) && emptyField(emailEditText) && emptyField(phoneEditText) && emptyField(cnpEditText) && emptyField(studentIdEditText) && emptyField(passwordEditText) && emptyField(confirmPasswordEditText));
+    }
+
+    // Method to check if passwords match
+    private boolean doPasswordsMatch() {
+        return passwordEditText.getText().toString().equals(confirmPasswordEditText.getText().toString());
+    }
+
+    // Method to handle the image URI validation
+    private void handleImageUriValidation() {
+        if (imageUri != null) {
+            if (oneFace) {
+                checkPhoneNumberAndRegister();
+            } else {
+                Toast.makeText(RegisterStudentActivity.this, "You must upload a picture alone!", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(RegisterStudentActivity.this, "You must upload a picture!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Method to handle the button click event
+    private void handleRegisterButtonClick() {
+        boolean valid = areFieldsFilled();
+
+        if (valid && doPasswordsMatch()) {
+            handleImageUriValidation();
+        } else {
+            confirmPasswordEditText.setError("Passwords have to match");
+        }
+    }
+
     private void saveUserData() {
         if (user == null) {
             Toast.makeText(RegisterStudentActivity.this, "User is null", Toast.LENGTH_SHORT).show();
@@ -335,7 +353,7 @@ public class RegisterStudentActivity extends AppCompatActivity {
         DocumentReference df = fStore.collection("Users").document(user.getUid());
         df.set(userInfo)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(RegisterStudentActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(RegisterStudentActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
                     Log.e("Firestore Save Error", "Failed to save user data", e);

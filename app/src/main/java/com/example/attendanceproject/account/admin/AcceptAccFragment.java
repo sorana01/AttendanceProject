@@ -182,7 +182,7 @@ public class AcceptAccFragment extends Fragment {
         fStore.collection("Users").document(userId)
                 .update("isApproved", status)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(getContext(), "User status updated", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(getContext(), "User status updated", Toast.LENGTH_SHORT).show();
                     reloadUserList();  // Refresh list after update
                 })
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Error updating user status", Toast.LENGTH_SHORT).show());

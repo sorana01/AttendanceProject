@@ -24,7 +24,7 @@
                 android:id="@+id/mark_att_pic_TV"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Mark Attendance Picture"
+                android:text="Mark Attendance"
                 android:textSize="16sp"/>
 
         </LinearLayout>

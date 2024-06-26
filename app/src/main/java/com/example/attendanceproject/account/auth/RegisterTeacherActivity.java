@@ -104,7 +104,7 @@ public class RegisterTeacherActivity extends AppCompatActivity {
                     userInfo.put("isApproved", "pending");
 
                     df.set(userInfo).addOnSuccessListener(aVoid -> {
-                        Toast.makeText(RegisterTeacherActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(RegisterTeacherActivity.this, "User information saved in Firestore", Toast.LENGTH_SHORT).show();
                         startActivity(new Intent(getApplicationContext(), LoginUserActivity.class));
                         finish();
                     }).addOnFailureListener(e -> {

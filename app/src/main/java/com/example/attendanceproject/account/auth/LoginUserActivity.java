@@ -79,17 +79,17 @@ public class LoginUserActivity extends AppCompatActivity{
         DocumentReference df = fStore.collection("Users").document(uid);
         df.get().addOnSuccessListener(documentSnapshot -> {
             if (Boolean.TRUE.equals(documentSnapshot.getBoolean("isAdmin"))) {
-                Toast.makeText(LoginUserActivity.this, "You are an admin", Toast.LENGTH_LONG).show();
+//                Toast.makeText(LoginUserActivity.this, "You are an admin", Toast.LENGTH_LONG).show();
                 startActivity(new Intent(getApplicationContext(), AdminActivity.class));
                 finish();
             }
             if ((Objects.equals(documentSnapshot.getString("isApproved"), "true"))) {
                 if (Boolean.TRUE.equals(documentSnapshot.getBoolean("isStudent"))) {
-                    Toast.makeText(LoginUserActivity.this, "You are a student", Toast.LENGTH_LONG).show();
+//                    Toast.makeText(LoginUserActivity.this, "You are a student", Toast.LENGTH_LONG).show();
                     startActivity(new Intent(getApplicationContext(), StudentActivity.class));
                 }
                 if (Boolean.TRUE.equals(documentSnapshot.getBoolean("isTeacher"))) {
-                    Toast.makeText(LoginUserActivity.this, "You are a teacher", Toast.LENGTH_LONG).show();
+//                    Toast.makeText(LoginUserActivity.this, "You are a teacher", Toast.LENGTH_LONG).show();
                     startActivity(new Intent(getApplicationContext(), TeacherActivity.class));
                 }
                 finish();
