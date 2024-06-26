@@ -2,16 +2,13 @@
 <project version="4">
   <component name="deploymentTargetDropDown">
     <value>
-      <entry key="AdminActivity">
-        <State />
-      </entry>
-      <entry key="FirebaseUIActivity">
+      <entry key="FaceDetActivity">
         <State />
       </entry>
       <entry key="LoginUserActivity">
         <State />
       </entry>
-      <entry key="MainActivity2">
+      <entry key="RecognizeActivity">
         <State />
       </entry>
       <entry key="UserAccountActivity">
