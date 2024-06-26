@@ -17,14 +17,18 @@ import androidx.appcompat.app.AlertDialog;
 import com.example.attendanceproject.R;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+
+import java.util.List;
 
 public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment {
     private String courseName, courseDetail, courseId;
     private FirebaseFirestore firestore;
     private CollectionReference attendanceRecordsRef;
+    private CollectionReference usersCollectionRef;
 
     public static CourseTeacherBottomSheetFragment newInstance() {
         return new CourseTeacherBottomSheetFragment();
@@ -35,6 +39,7 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
         super.onCreate(savedInstanceState);
         firestore = FirebaseFirestore.getInstance();
         attendanceRecordsRef = firestore.collection("AttendanceRecords");
+        usersCollectionRef = firestore.collection("Users");
     }
 
     @Nullable
@@ -126,7 +131,7 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
         builder.setTitle("Attendance Exists")
                 .setMessage("Attendance for course " + courseName + " and week " + selectedWeek + " already exists.")
                 .setPositiveButton("Delete Attendance", (dialog, id) -> {
-                    deleteAttendanceRecord(selectedWeek, () -> startAttendanceActivity(activityClass, selectedWeek));
+                    deleteAttendanceRecord(selectedWeek, () -> {});
                 })
                 .setNegativeButton("Append to Attendance", (dialog, id) -> startAttendanceActivity(activityClass, selectedWeek))
                 .create()
@@ -134,8 +139,9 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
     }
 
     private void deleteAttendanceRecord(int selectedWeek, Runnable onSuccess) {
+        DocumentReference courseRef = firestore.document("Courses/" + courseId);
         attendanceRecordsRef
-                .whereEqualTo("courseID", firestore.document("Courses/" + courseId))
+                .whereEqualTo("courseID", courseRef)
                 .whereEqualTo("week", selectedWeek)
                 .get()
                 .addOnCompleteListener(task -> {
@@ -143,7 +149,13 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
                         QuerySnapshot querySnapshot = task.getResult();
                         if (querySnapshot != null && !querySnapshot.isEmpty()) {
                             for (QueryDocumentSnapshot document : querySnapshot) {
-                                attendanceRecordsRef.document(document.getId()).delete();
+                                // Capture attendees list before deleting the record
+                                List<String> attendees = (List<String>) document.get("attendees");
+                                attendanceRecordsRef.document(document.getId()).delete()
+                                        .addOnSuccessListener(aVoid -> {
+                                            // After successfully deleting the attendance record, proceed to delete user documents
+                                            deleteFromUsersCoursesEnrolled(attendees, courseId, selectedWeek);
+                                        });
                             }
                             Toast.makeText(getContext(), "Attendance record deleted", Toast.LENGTH_SHORT).show();
                             onSuccess.run();
@@ -153,4 +165,40 @@ public class CourseTeacherBottomSheetFragment extends BottomSheetDialogFragment 
                     }
                 });
     }
+
+    private void deleteFromUsersCoursesEnrolled(List<String> attendees, String courseId, int week) {
+        for (String fullName : attendees) {
+            usersCollectionRef
+                    .whereEqualTo("FullName", fullName)
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            for (QueryDocumentSnapshot userDoc : task.getResult()) {
+                                CollectionReference coursesEnrolled = userDoc.getReference().collection("CoursesEnrolled");
+                                coursesEnrolled
+                                        .whereEqualTo("courseReference", firestore.document("Courses/" + courseId))
+                                        .get()
+                                        .addOnCompleteListener(task2 -> {
+                                            if (task2.isSuccessful()) {
+                                                for (QueryDocumentSnapshot courseDoc : task2.getResult()) {
+                                                    CollectionReference attendanceCol = courseDoc.getReference().collection("Attendance");
+                                                    attendanceCol
+                                                            .whereEqualTo("week", week)
+                                                            .get()
+                                                            .addOnCompleteListener(task3 -> {
+                                                                if (task3.isSuccessful()) {
+                                                                    for (QueryDocumentSnapshot attendanceDoc : task3.getResult()) {
+                                                                        attendanceDoc.getReference().delete();
+                                                                    }
+                                                                }
+                                                            });
+                                                }
+                                            }
+                                        });
+                            }
+                        }
+                    });
+        }
+    }
+
 }
