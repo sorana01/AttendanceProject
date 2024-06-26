@@ -9,17 +9,15 @@ import androidx.annotation.NonNull;
 import com.example.attendanceproject.R;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 
 public class CheckableEntityAdapter extends EntityAdapter<CheckableEntityItem> {
-    private HashSet<Integer> checkedPositions = new HashSet<>();
 
     public CheckableEntityAdapter(Context context, ArrayList<CheckableEntityItem> entityItems) {
         super(context, entityItems);
     }
 
     public static class CheckableEntityViewHolder extends EntityViewHolder {
-        public CheckBox checkBox;  // Additional component
+        public CheckBox checkBox;  // Checkbox component
 
         public CheckableEntityViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -40,32 +38,34 @@ public class CheckableEntityAdapter extends EntityAdapter<CheckableEntityItem> {
         CheckableEntityItem item = entityItems.get(position);
         CheckableEntityViewHolder checkableHolder = (CheckableEntityViewHolder) holder;
 
+        // Detach the listener to prevent firing during initial setup
+        checkableHolder.checkBox.setOnCheckedChangeListener(null);
+        // Set checked state based on item state
         checkableHolder.checkBox.setChecked(item.isChecked());
-        checkableHolder.checkBox.setOnCheckedChangeListener(null);  // Detach the listener to prevent firing during initial setup
 
+        // Attach the listener and update item state when checkbox is toggled
         checkableHolder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            // Update the item's checked state whenever the checkbox is toggled
             item.setChecked(isChecked);
-            if (isChecked) {
-                checkedPositions.add(position);
-            } else {
-                checkedPositions.remove(position);
-            }
         });
     }
 
-    // Method to retrieve a list of checked items
+    // Method to retrieve a list of checked items directly from entityItems
     public ArrayList<CheckableEntityItem> getCheckedItems() {
         ArrayList<CheckableEntityItem> checkedItems = new ArrayList<>();
-        for (int position : checkedPositions) {
-            if (position < entityItems.size()) {  // Check if position is valid
-                checkedItems.add(entityItems.get(position));
+        for (CheckableEntityItem item : entityItems) {
+            if (item.isChecked()) {
+                checkedItems.add(item);
             }
         }
         return checkedItems;
     }
 
     public void clearCheckedPositions() {
-        checkedPositions.clear();
+        for (CheckableEntityItem item : entityItems) {
+            item.setChecked(false);
+        }
+        notifyDataSetChanged();
     }
 
 }

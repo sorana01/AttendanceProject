@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.attendanceproject.account.adapters.CheckableEntityAdapter;
 import com.example.attendanceproject.account.adapters.CheckableEntityItem;
+import com.example.attendanceproject.account.adapters.EntityAdapter;
+import com.example.attendanceproject.account.adapters.EntityItem;
 import com.example.attendanceproject.databinding.FragmentCoursesForStudentsAndTeachersBinding;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -26,9 +28,9 @@ public class CoursesForStudentsAndTeachersFragment extends Fragment {
     private FragmentCoursesForStudentsAndTeachersBinding binding;
     private FirebaseFirestore fStore;
     private RecyclerView recyclerView;
-    private CheckableEntityAdapter courseAdapter;
+    private EntityAdapter entityAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private ArrayList<CheckableEntityItem> courseItems = new ArrayList<>();
+    private ArrayList<EntityItem> courseItems = new ArrayList<>();
     private String userId;
 
     @Override
@@ -55,8 +57,8 @@ public class CoursesForStudentsAndTeachersFragment extends Fragment {
         layoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(layoutManager);
 
-        courseAdapter = new CheckableEntityAdapter(getActivity(), courseItems);
-        recyclerView.setAdapter(courseAdapter);
+        entityAdapter = new EntityAdapter(getActivity(), courseItems);
+        recyclerView.setAdapter(entityAdapter);
     }
 
     private void loadCoursesForUser(String userId) {
@@ -73,8 +75,8 @@ public class CoursesForStudentsAndTeachersFragment extends Fragment {
                                         .addOnSuccessListener(courseDoc -> {
                                             String courseName = courseDoc.getString("courseName");
                                             String courseDetail = courseDoc.getString("courseDetail");
-                                            courseItems.add(new CheckableEntityItem(courseName, courseDetail));
-                                            courseAdapter.notifyDataSetChanged();
+                                            courseItems.add(new EntityItem(courseName, courseDetail));
+                                            entityAdapter.notifyDataSetChanged();
                                         })
                                         .addOnFailureListener(e -> Toast.makeText(getContext(), "Error loading course", Toast.LENGTH_SHORT).show());
                             }

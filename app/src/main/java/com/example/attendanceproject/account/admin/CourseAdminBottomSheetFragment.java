@@ -17,6 +17,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.attendanceproject.R;
 import com.example.attendanceproject.account.adapters.CheckableEntityAdapter;
 import com.example.attendanceproject.account.adapters.CheckableEntityItem;
+import com.example.attendanceproject.account.adapters.EntityAdapter;
+import com.example.attendanceproject.account.adapters.EntityItem;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
@@ -37,9 +39,11 @@ import java.util.Set;
 public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
     private RecyclerView recyclerView;
     private FirebaseFirestore fStore;
+    private EntityAdapter entityAdapter;
     private CheckableEntityAdapter checkableEntityAdapter;
     // will be sent to the adapter
-    private ArrayList<CheckableEntityItem> userList = new ArrayList<>();
+    private ArrayList<CheckableEntityItem> checkableEntityItems = new ArrayList<>();
+    private ArrayList<EntityItem> entityItems = new ArrayList<>();
     private LinearLayout toolbarLayout;
     private LinearLayout optionsLayout;
     private String currentRole = ""; // To track the current role being assigned
@@ -82,12 +86,13 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
         recyclerView = view.findViewById(R.id.recyclerView);
         toolbarLayout = view.findViewById(R.id.toolbarLayout);
         optionsLayout = view.findViewById(R.id.optionsLayout);
-        checkableEntityAdapter = new CheckableEntityAdapter(getContext(), userList);
+        entityAdapter = new EntityAdapter<>(getContext(), entityItems);
+        checkableEntityAdapter = new CheckableEntityAdapter(getContext(), checkableEntityItems);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setAdapter(checkableEntityAdapter);
 
         view.findViewById(R.id.assignStudentsTV).setOnClickListener(v -> {
             currentRole = "student";
+            recyclerView.setAdapter(checkableEntityAdapter);
             loadUnassignedUsers("isStudent");
             recyclerView.setVisibility(View.VISIBLE);
             optionsLayout.setVisibility(View.GONE);
@@ -96,14 +101,16 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
 
         view.findViewById(R.id.viewStudentsTV).setOnClickListener(v -> {
             currentRole = "student";
+            recyclerView.setAdapter(entityAdapter);
             loadCourseUsers("isStudent");
             recyclerView.setVisibility(View.VISIBLE);
             optionsLayout.setVisibility(View.GONE);
-            toolbarLayout.setVisibility(View.VISIBLE);
+            toolbarLayout.setVisibility(View.GONE);
         });
 
         view.findViewById(R.id.assignTeachersTV).setOnClickListener(v -> {
             currentRole = "teacher";
+            recyclerView.setAdapter(checkableEntityAdapter);
             loadUnassignedUsers("isTeacher");
             recyclerView.setVisibility(View.VISIBLE);
             optionsLayout.setVisibility(View.GONE);
@@ -112,10 +119,11 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
 
         view.findViewById(R.id.viewTeachersTV).setOnClickListener(v -> {
             currentRole = "teacher";
+            recyclerView.setAdapter(entityAdapter);
             loadCourseUsers("isTeacher");
             recyclerView.setVisibility(View.VISIBLE);
             optionsLayout.setVisibility(View.GONE);
-            toolbarLayout.setVisibility(View.VISIBLE);
+            toolbarLayout.setVisibility(View.GONE);
         });
 
         Button backButton = view.findViewById(R.id.backButton);
@@ -152,67 +160,6 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
                 });
     }
 
-//    private void saveData() {
-//        if (courseId == null) {
-//            Toast.makeText(getContext(), "Course not found", Toast.LENGTH_SHORT).show();
-//            return;
-//        }
-//
-//        ArrayList<CheckableEntityItem> checkedItems = checkableEntityAdapter.getCheckedItems();
-//        if (checkedItems.isEmpty()) {
-//            Toast.makeText(getContext(), "No " + currentRole + "s selected", Toast.LENGTH_SHORT).show();
-//            return;
-//        }
-//
-//        String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
-//
-//        for (CheckableEntityItem item : checkedItems) {
-//            fStore.collection("Users")
-//                    .whereEqualTo("UserEmail", item.getEntityDetail())
-//                    .get()
-//                    .addOnSuccessListener(userSnapshot -> {
-//                        if (!userSnapshot.isEmpty()) {
-//                            QueryDocumentSnapshot userDoc = (QueryDocumentSnapshot) userSnapshot.getDocuments().get(0);
-//                            DocumentReference userRef = userDoc.getReference();
-//
-//                            // Add user reference to course's subcollection
-//                            Map<String, Object> userRefData = new HashMap<>();
-//                            userRefData.put("userReference", userRef);
-//                            userRefData.put("userName", item.getEntityName());  // Optional for quick view
-//                            userRefData.put("userEmail", item.getEntityDetail());   //Optional for quick view
-//
-//
-//                            fStore.collection(collectionPath)
-//                                    .add(userRefData)
-//                                    .addOnSuccessListener(documentReference -> {
-//                                        Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
-//                                    })
-//                                    .addOnFailureListener(e -> {
-//                                        Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
-//                                    });
-//
-//                            // Add course reference to user's subcollection
-//                            String userCourseSubPath = "CoursesEnrolled";
-//                            DocumentReference courseRef = fStore.collection("Courses").document(courseId);
-//                            Map<String, Object> courseRefData = new HashMap<>();
-//                            courseRefData.put("courseReference", courseRef);
-//                            courseRefData.put("courseName", courseName);  // Optional for quick view
-//                            courseRefData.put("courseDetail", courseDetail);  // Optional for quick view
-//
-//                            userRef.collection(userCourseSubPath)
-//                                    .add(courseRefData)
-//                                    .addOnFailureListener(e -> {
-//                                        Log.w("Firestore", "Error adding course reference to user", e);
-//                                    });
-//                        } else {
-//                            Toast.makeText(getContext(), "User not found", Toast.LENGTH_SHORT).show();
-//                        }
-//                    })
-//                    .addOnFailureListener(e -> {
-//                        Toast.makeText(getContext(), "Error finding user: " + item.getEntityDetail(), Toast.LENGTH_SHORT).show();
-//                    });
-//        }
-//    }
 
     private void saveData() {
         if (courseId == null) {
@@ -262,7 +209,7 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
         fStore.collection(collectionPath)
                 .add(userRefData)
                 .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
+//                    Toast.makeText(getContext(), currentRole + " assigned successfully: " + item.getEntityName(), Toast.LENGTH_LONG).show();
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(getContext(), "Failed to assign " + currentRole + ": " + item.getEntityName(), Toast.LENGTH_SHORT).show();
@@ -296,7 +243,7 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
         String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
 
         // Clear the list and notify adapter
-        userList.clear();
+        checkableEntityItems.clear();
         checkableEntityAdapter.notifyDataSetChanged();
 
         // Cancel any previous loading task
@@ -351,7 +298,7 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
                 .get()
                 .addOnCompleteListener(usersTask -> {
                     if (usersTask.isSuccessful()) {
-                        userList.clear();
+                        checkableEntityItems.clear();
                         for (QueryDocumentSnapshot document : usersTask.getResult()) {
                             String userName = document.getString("FullName");
                             String userDetail = document.getString("UserEmail");
@@ -359,7 +306,7 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
                             if (!assignedEmails.contains(userDetail)) {
                                 CheckableEntityItem item = new CheckableEntityItem(userName, userDetail);
                                 item.setChecked(false);
-                                userList.add(item);
+                                checkableEntityItems.add(item);
                             }
                         }
                         checkableEntityAdapter.notifyDataSetChanged();
@@ -380,8 +327,8 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
         String collectionPath = "Courses/" + courseId + (currentRole.equals("student") ? "/AssignedStudents" : "/AssignedTeachers");
 
         // Clear user list and notify adapter first
-        userList.clear();
-        checkableEntityAdapter.notifyDataSetChanged();
+        entityItems.clear();
+        entityAdapter.notifyDataSetChanged();
 
         // Cancel any previous loading task
         if (currentLoadTask != null && !currentLoadTask.isComplete()) {
@@ -407,11 +354,11 @@ public class CourseAdminBottomSheetFragment extends BottomSheetDialogFragment {
                                 if (userSnapshot.exists()) {
                                     String userName = userSnapshot.getString("FullName");
                                     String userEmail = userSnapshot.getString("UserEmail");
-                                    CheckableEntityItem item = new CheckableEntityItem(userName, userEmail);
-                                    userList.add(item);
+                                    EntityItem item = new EntityItem(userName, userEmail);
+                                    entityItems.add(item);
                                 }
                             }
-                            checkableEntityAdapter.notifyDataSetChanged();
+                            entityAdapter.notifyDataSetChanged();
                         }).addOnFailureListener(e -> {
                             Toast.makeText(getContext(), "Error loading assigned users", Toast.LENGTH_SHORT).show();
                         });
