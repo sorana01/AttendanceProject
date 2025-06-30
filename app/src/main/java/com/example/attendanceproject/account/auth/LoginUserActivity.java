@@ -114,7 +114,6 @@ public class LoginUserActivity extends AppCompatActivity{
             }
             else if ((Objects.equals(documentSnapshot.getString("isApproved"), "pending"))){
                 Toast.makeText(LoginUserActivity.this, "Account not yet approved by admin", Toast.LENGTH_LONG).show();
-                sendPushNotificationToAdmin("Approval Request", "A new account needs your approval.");
             }
 
             else if (Objects.equals(documentSnapshot.getString("isApproved"), "false")) {
@@ -133,54 +132,6 @@ public class LoginUserActivity extends AppCompatActivity{
         }
     }
 
-    private void sendPushNotificationToAdmin(String title, String message) {
-        FirebaseFirestore.getInstance()
-                .collection("Users")
-                .whereEqualTo("isAdmin", true)
-                .limit(1)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        String adminToken = queryDocumentSnapshots.getDocuments().get(0).getString("fcmToken");
-
-                        if (adminToken != null && !adminToken.isEmpty()) {
-                            // Now send push using FCM HTTP
-                            String serverKey = "YOUR_SERVER_KEY_HERE"; // <-- From Firebase Console
-                            String fcmUrl = "https://fcm.googleapis.com/fcm/send";
-
-                            JSONObject notification = new JSONObject();
-                            JSONObject notificationBody = new JSONObject();
-
-                            try {
-                                notificationBody.put("title", title);
-                                notificationBody.put("body", message);
-
-                                notification.put("to", adminToken);
-                                notification.put("notification", notificationBody);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-
-                            JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, fcmUrl, notification,
-                                    response -> Log.d("FCM", "Notification sent!"),
-                                    error -> Log.e("FCM", "Failed to send notification: " + error.toString())) {
-
-                                @Override
-                                public Map<String, String> getHeaders() {
-                                    Map<String, String> headers = new HashMap<>();
-                                    headers.put("Authorization", "key=" + serverKey);
-                                    headers.put("Content-Type", "application/json");
-                                    return headers;
-                                }
-                            };
-
-                            // Add the request to the Volley queue
-                            RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
-                            queue.add(request);
-                        }
-                    }
-                });
-    }
 
 
 //    @Override

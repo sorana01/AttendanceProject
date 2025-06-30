@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.attendanceproject"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <queries>
+        <package android:name="com.google.android.gms" />
+        <package android:name="com.android.vending" /> <!-- Google Play Store -->
+    </queries>
 
     <uses-feature
         android:name="android.hardware.camera"
